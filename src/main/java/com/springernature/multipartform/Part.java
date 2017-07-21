@@ -3,20 +3,23 @@ package com.springernature.multipartform;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Map;
 
 public class Part  extends InputStream implements Closeable {
-    private String fieldName;
-    private boolean formField;
-    private String contentType;
-    private String fileName;
+    private final String fieldName;
+    private final boolean formField;
+    private final String contentType;
+    private final String fileName;
     private final InputStream inputStream;
+    private final Map<String, String> headers;
 
-    public Part(String fieldName, boolean formField, String contentType, String fileName, InputStream inputStream) {
+    public Part(String fieldName, boolean formField, String contentType, String fileName, InputStream inputStream, Map<String, String> headers) {
         this.fieldName = fieldName;
         this.formField = formField;
         this.contentType = contentType;
         this.fileName = fileName;
         this.inputStream = inputStream;
+        this.headers = headers;
     }
 
     @Override public int read() throws IOException {
@@ -59,5 +62,9 @@ public class Part  extends InputStream implements Closeable {
             length += count;
         }
         return new String(bytes, 0, length);
+    }
+
+    public Map<String, String> getHeaders() {
+        return headers;
     }
 }

@@ -1,6 +1,7 @@
 package com.springernature.multipartform;
 
 import com.googlecode.totallylazy.Pair;
+import com.googlecode.totallylazy.Sequence;
 
 import static com.googlecode.totallylazy.Pair.pair;
 import static com.googlecode.totallylazy.Sequences.sequence;
@@ -18,16 +19,15 @@ public class ValidMultipartFormBuilder {
     }
 
     public ValidMultipartFormBuilder field(String name, String value) {
-        builder.append(boundary).append(CR_LF);
-        appendHeader("Content-Disposition", pair("form-data", null), pair("name", name));
-        builder.append(CR_LF)
-            .append(value).append(CR_LF);
+        part(value,
+            pair("Content-Disposition", sequence(pair("form-data", null), pair("name", name)))
+        );
         return this;
     }
 
-    private void appendHeader(final String headerName, Pair... pairs) {
+    private void appendHeader(final String headerName, Sequence<Pair<String, String>> pairs) {
         builder.append(headerName).append(": ")
-            .append(sequence(pairs).map((pair) -> {
+            .append(pairs.map((pair) -> {
                 if (pair.getValue() != null) {
                     return pair.getKey() + "=\"" + pair.getValue() + "\"";
                 }
@@ -36,12 +36,21 @@ public class ValidMultipartFormBuilder {
             .append(CR_LF);
     }
 
-    public ValidMultipartFormBuilder file(String fieldName, String filename, String contentType, String contents) {
+    public ValidMultipartFormBuilder part(String contents, Pair<String, Sequence<Pair<String, String>>>... headers) {
         builder.append(boundary).append(CR_LF);
-        appendHeader("Content-Disposition", pair("form-data", null), pair("name", fieldName), pair("filename", filename));
-        appendHeader("Content-Type", pair(contentType, null));
+        sequence(headers).forEach(header -> {
+            appendHeader(header.getKey(), header.getValue());
+        });
         builder.append(CR_LF)
             .append(contents).append(CR_LF);
+        return this;
+    }
+
+    public ValidMultipartFormBuilder file(String fieldName, String filename, String contentType, String contents) {
+        part(contents,
+            pair("Content-Disposition", sequence(pair("form-data", null), pair("name", fieldName), pair("filename", filename))),
+            pair("Content-Type", sequence(pair(contentType, null)))
+        );
         return this;
     }
 

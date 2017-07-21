@@ -6,7 +6,10 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
+import java.util.Map;
 
+import static com.googlecode.totallylazy.Pair.pair;
+import static com.googlecode.totallylazy.Sequences.sequence;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertFalse;
@@ -178,27 +181,65 @@ public class UploadFileTest {
         assertThereAreNoMoreParts(form);
     }
 
+    @Test
+    public void partsCanHaveLotsOfHeaders() throws Exception {
+        String boundary = "-----1234";
+        MultipartFormParts form = getMultipartFormParts(boundary,
+            new ValidMultipartFormBuilder(boundary)
+                .part("This is the content of the file\n",
+                    pair("Content-Disposition", sequence(pair("form-data", null), pair("name", "fileFieldName"), pair("filename", "filename.txt"))),
+                    pair("Content-Type", sequence(pair("plain/text", null))),
+                    pair("Some-header", sequence(pair("some value", null))))
+                .part("This is the content of the field\n",
+                    pair("Content-Disposition", sequence(pair("form-data", null), pair("name", "fieldFieldName"))),
+                    pair("Another-header", sequence(pair("some-key", "some-value")))
+                )
+                .build());
+
+        Part file = assertFilePart(form, "fileFieldName", "filename.txt", "plain/text", "This is the content of the file\n");
+
+        Map<String, String> fileHeaders = file.getHeaders();
+        assertThat(fileHeaders.size(), equalTo(3));
+        assertThat(fileHeaders.get("Content-Disposition"), equalTo("form-data; name=\"fileFieldName\"; filename=\"filename.txt\""));
+        assertThat(fileHeaders.get("Content-Type"), equalTo("plain/text"));
+        assertThat(fileHeaders.get("Some-header"), equalTo("some value"));
+
+        Part field = assertFieldPart(form, "fieldFieldName", "This is the content of the field\n");
+
+        Map<String, String> fieldHeaders = field.getHeaders();
+        assertThat(fieldHeaders.size(), equalTo(2));
+        assertThat(fieldHeaders.get("Content-Disposition"), equalTo("form-data; name=\"fieldFieldName\""));
+        assertThat(fieldHeaders.get("Another-header"), equalTo("some-key=\"some-value\""));
+
+        assertThereAreNoMoreParts(form);
+    }
+
     private MultipartFormParts getMultipartFormParts(String boundary, String multipartFormContents) throws IOException {
         InputStream multipartFormContentsStream = new ByteArrayInputStream(multipartFormContents.getBytes(Charset.forName("UTF-8")));
         return MultipartFormParts.parse(boundary, multipartFormContentsStream);
     }
 
-    private void assertFilePart(MultipartFormParts form, String fieldName, String fileName, String contentType, String contents) throws IOException {
+    private Part assertFilePart(MultipartFormParts form, String fieldName, String fileName, String contentType, String contents) throws IOException {
         assertThereAreMoreParts(form);
         Part file = form.next();
-        assertThat(file.getFieldName(), equalTo(fieldName));
+        assertThat("file name", file.getFileName(), equalTo(fileName));
+        assertThat("content type", file.getContentType(), equalTo(contentType));
         assertPartIsNotField(file);
-        assertThat(file.getContentType(), equalTo(contentType));
-        assertThat(file.getFileName(), equalTo(fileName));
-        assertThat(file.getContentsAsString(), equalTo(contents));
+        assertPart(fieldName, contents, file);
+        return file;
     }
 
-    private void assertFieldPart(MultipartFormParts form, String fieldName, String fieldValue) throws IOException {
+    private Part assertFieldPart(MultipartFormParts form, String fieldName, String fieldValue) throws IOException {
         assertThereAreMoreParts(form);
         Part field = form.next();
-        assertThat(field.getFieldName(), equalTo(fieldName));
         assertPartIsFormField(field);
-        assertThat(field.getContentsAsString(), equalTo(fieldValue));
+        assertPart(fieldName, fieldValue, field);
+        return field;
+    }
+
+    private void assertPart(String fieldName, String fieldValue, Part part) throws IOException {
+        assertThat("field name", part.getFieldName(), equalTo(fieldName));
+        assertThat("contents", part.getContentsAsString(), equalTo(fieldValue));
     }
 
     private void assertThereAreNoMoreParts(MultipartFormParts form) {
