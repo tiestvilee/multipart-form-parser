@@ -14,9 +14,7 @@ public class ValidMultipartFormBuilder {
     public ValidMultipartFormBuilder(String boundary) {this.boundary = boundary;}
 
     public String build() {
-        String result = builder.toString() + boundary + "--" + CR_LF;
-        System.out.println("result = " + result);
-        return result;
+        return builder.toString() + boundary + "--" + CR_LF;
     }
 
     public ValidMultipartFormBuilder field(String name, String value) {
@@ -44,6 +42,11 @@ public class ValidMultipartFormBuilder {
         appendHeader("Content-Type", pair(contentType, null));
         builder.append(CR_LF)
             .append(contents).append(CR_LF);
+        return this;
+    }
+
+    public ValidMultipartFormBuilder rawPart(String raw) {
+        builder.append(boundary).append(CR_LF).append(raw).append(CR_LF);
         return this;
     }
 }

@@ -17,7 +17,7 @@ public class UploadFileTest {
     public static final String CR_LF = "\r\n";
 
     @Test
-    public void testEmptyContents() throws Exception {
+    public void uploadEmptyContents() throws Exception {
         String boundary = "-----1234";
         MultipartFormParts form = getMultipartFormParts(boundary, new ValidMultipartFormBuilder(boundary).build());
 
@@ -25,7 +25,7 @@ public class UploadFileTest {
     }
 
     @Test
-    public void testEmptyFile() throws Exception {
+    public void uploadEmptyFile() throws Exception {
         String boundary = "-----2345";
         MultipartFormParts form = getMultipartFormParts(boundary, new ValidMultipartFormBuilder(boundary)
             .file("aFile", "", "doesnt/matter", "").build());
@@ -51,7 +51,7 @@ public class UploadFileTest {
     }
 
     @Test
-    public void testEmptyField() throws Exception {
+    public void uploadEmptyField() throws Exception {
         String boundary = "-----3456";
         MultipartFormParts form = getMultipartFormParts(boundary, new ValidMultipartFormBuilder(boundary)
             .field("aField", "").build());
@@ -62,7 +62,7 @@ public class UploadFileTest {
     }
 
     @Test
-    public void testSmallFile() throws Exception {
+    public void uploadSmallFile() throws Exception {
         String boundary = "-----2345";
         MultipartFormParts form = getMultipartFormParts(boundary, new ValidMultipartFormBuilder(boundary)
             .file("aFile", "file.name", "application/octet-stream", "File contents here").build());
@@ -74,7 +74,7 @@ public class UploadFileTest {
 
 
     @Test
-    public void testSmallField() throws Exception {
+    public void uploadSmallField() throws Exception {
         String boundary = "-----3456";
         MultipartFormParts form = getMultipartFormParts(boundary, new ValidMultipartFormBuilder(boundary)
             .field("aField", "Here is the value of the field\n").build());
@@ -85,18 +85,92 @@ public class UploadFileTest {
     }
 
     @Test
-    public void testFileUpload() throws Exception {
-
+    public void uploadMultipleFilesAndFields() throws Exception {
         String boundary = "-----1234";
         MultipartFormParts form = getMultipartFormParts(boundary,
             new ValidMultipartFormBuilder(boundary)
                 .file("file", "foo.tab", "text/whatever", "This is the content of the file\n")
                 .field("field", "fieldValue")
                 .field("multi", "value1")
+                .file("anotherFile", "BAR.tab", "text/something", "This is another file\n")
                 .field("multi", "value2")
                 .build());
 
         assertFilePart(form, "file", "foo.tab", "text/whatever", "This is the content of the file\n");
+        assertFieldPart(form, "field", "fieldValue");
+        assertFieldPart(form, "multi", "value1");
+        assertFilePart(form, "anotherFile", "BAR.tab", "text/something", "This is another file\n");
+        assertFieldPart(form, "multi", "value2");
+
+        assertThereAreNoMoreParts(form);
+    }
+
+    /*
+    @Test
+    public void testFILEUPLOAD62() throws Exception {
+        final String contentType = "multipart/form-data; boundary=AaB03x";
+        final String request =
+            "--AaB03x\r\n" +
+            "content-disposition: form-data; name=\"field1\"\r\n" +
+            "\r\n" +
+            "Joe Blow\r\n" +
+            "--AaB03x\r\n" +
+            "content-disposition: form-data; name=\"pics\"\r\n" +
+            "Content-type: multipart/mixed; boundary=BbC04y\r\n" +
+            "\r\n" +
+            "--BbC04y\r\n" +
+            "Content-disposition: attachment; filename=\"file1.txt\"\r\n" +
+            "Content-Type: text/plain\r\n" +
+            "\r\n" +
+            "... contents of file1.txt ...\r\n" +
+            "--BbC04y\r\n" +
+            "Content-disposition: attachment; filename=\"file2.gif\"\r\n" +
+            "Content-type: image/gif\r\n" +
+            "Content-Transfer-Encoding: binary\r\n" +
+            "\r\n" +
+            "...contents of file2.gif...\r\n" +
+            "--BbC04y--\r\n" +
+            "--AaB03x--";
+        List<FileItem> fileItems = Util.parseUpload(upload, request.getBytes("US-ASCII"), contentType);
+        assertEquals(3, fileItems.size());
+        FileItem item0 = fileItems.get(0);
+        assertEquals("field1", item0.getFieldName());
+        assertNull(item0.getName());
+        assertEquals("Joe Blow", new String(item0.get()));
+        FileItem item1 = fileItems.get(1);
+        assertEquals("pics", item1.getFieldName());
+        assertEquals("file1.txt", item1.getName());
+        assertEquals("... contents of file1.txt ...", new String(item1.get()));
+        FileItem item2 = fileItems.get(2);
+        assertEquals("pics", item2.getFieldName());
+        assertEquals("file2.gif", item2.getName());
+        assertEquals("...contents of file2.gif...", new String(item2.get()));
+    }
+     */
+
+    @Test
+    public void uploadMultipartFormWithSubParts() throws Exception {
+
+    }
+
+    @Test
+    public void uploadFieldsWithMultilineHeaders() throws Exception {
+        String boundary = "-----1234";
+        MultipartFormParts form = getMultipartFormParts(boundary,
+            new ValidMultipartFormBuilder(boundary)
+                .rawPart(
+                    "Content-Disposition: form-data; \r\n" +
+                        "\tname=\"field\"\r\n" +
+                        "\r\n" +
+                        "fieldValue")
+                .rawPart(
+                    "Content-Disposition: form-data;\r\n" +
+                        "     name=\"multi\"\r\n" +
+                        "\r\n" +
+                        "value1")
+                .field("multi", "value2")
+                .build());
+
         assertFieldPart(form, "field", "fieldValue");
         assertFieldPart(form, "multi", "value1");
         assertFieldPart(form, "multi", "value2");

@@ -120,7 +120,7 @@ public class MultipartFormParts implements Iterator<Part> {
     }
 
     private void parsePart() {
-        Map<String, String> headers = parseHeaders();
+        Map<String, String> headers = parseHeaderLines();
         Map<String, String> contentDisposition = new ParameterParser().parse(headers.get("Content-Disposition"), ';');
         if (contentDisposition.containsKey("form-data")) {
             // something about ATTACHMENT
@@ -141,15 +141,25 @@ public class MultipartFormParts implements Iterator<Part> {
         return null;
     }
 
-    private Map<String, String> parseHeaders() {
+    private Map<String, String> parseHeaderLines() {
         Map<String, String> result = new HashMap<>();
+        String previousHeaderName = null;
         while (true) {
             String header = readStringFromBufferUntil(FIELD_SEPARATOR);
             if (header.equals("")) {
                 return result;
             }
-            int index = header.indexOf(":");
-            result.put(header.substring(0, index).trim(), header.substring(index + 1).trim());
+            if (header.matches("\\s+.*")) {
+                result.put(previousHeaderName, result.get(previousHeaderName) + "; " + header.trim());
+            } else {
+                int index = header.indexOf(":");
+                previousHeaderName = header.substring(0, index).trim();
+                if (result.containsKey(previousHeaderName)) {
+                    result.put(previousHeaderName, result.get(previousHeaderName) + "; " + header.substring(index + 1).trim());
+                } else {
+                    result.put(previousHeaderName, header.substring(index + 1).trim());
+                }
+            }
         }
     }
 
