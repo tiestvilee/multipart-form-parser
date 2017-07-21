@@ -1,6 +1,5 @@
 package com.springernature.multipartform;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
@@ -27,18 +26,94 @@ public class UploadFileTest {
 
     @Test
     public void testEmptyFile() throws Exception {
-        MultipartFormParts form = getMultipartFormParts("-----1234", "-----1234" + CR_LF +
-            "Content-Disposition: form-data; name=\"file\"; filename=\"\"" + CR_LF +
+        String boundary = "-----2345";
+        MultipartFormParts form = getMultipartFormParts(boundary, boundary + CR_LF +
+            "Content-Disposition: form-data; name=\"aFile\"; filename=\"\"" + CR_LF +
+            "Content-Type: application/octet-stream" + CR_LF +
             CR_LF +
             CR_LF +
-            "-----1234--" + CR_LF);
+            boundary + "--" + CR_LF);
 
         assertThereAreMoreParts(form);
 
         Part file = form.next();
         assertPartIsNotField(file);
-//        assertEquals("", file.getString());
-        assertThat(file.getName(), equalTo(""));
+        assertThat(file.getContentsAsString(), equalTo(""));
+        assertThat(file.getFieldName(), equalTo("aFile"));
+
+        assertThereAreNoMoreParts(form);
+    }
+
+
+    /*
+------WebKitFormBoundaryTYNvmYSrpPPAI5OJ
+Content-Disposition: form-data; name="articleType"
+
+review
+------WebKitFormBoundaryTYNvmYSrpPPAI5OJ
+Content-Disposition: form-data; name="uploadManuscript"; filename=""
+Content-Type: application/octet-stream
+
+
+------WebKitFormBoundaryTYNvmYSrpPPAI5OJ--
+
+     */
+
+    @Test
+    public void testEmptyField() throws Exception {
+        String boundary = "-----3456";
+        MultipartFormParts form = getMultipartFormParts(boundary, boundary + CR_LF +
+            "Content-Disposition: form-data; name=\"aField\"" + CR_LF +
+            CR_LF +
+            CR_LF +
+            boundary + "--" + CR_LF);
+
+        assertThereAreMoreParts(form);
+
+        Part field = form.next();
+        assertPartIsFormField(field);
+        assertThat(field.getContentsAsString(), equalTo(""));
+        assertThat(field.getFieldName(), equalTo("aField"));
+
+        assertThereAreNoMoreParts(form);
+    }
+
+    @Test
+    public void testSmallFile() throws Exception {
+        String boundary = "-----2345";
+        MultipartFormParts form = getMultipartFormParts(boundary, boundary + CR_LF +
+            "Content-Disposition: form-data; name=\"aFile\"; filename=\"\"" + CR_LF +
+            "Content-Type: application/octet-stream" + CR_LF +
+            CR_LF +
+            "File contents here\n" + CR_LF +
+            boundary + "--" + CR_LF);
+
+        assertThereAreMoreParts(form);
+
+        Part file = form.next();
+        assertPartIsNotField(file);
+        assertThat(file.getContentsAsString(), equalTo("File contents here\n"));
+        assertThat(file.getFieldName(), equalTo("aFile"));
+
+        assertThereAreNoMoreParts(form);
+    }
+
+
+    @Test
+    public void testSmallField() throws Exception {
+        String boundary = "-----3456";
+        MultipartFormParts form = getMultipartFormParts(boundary, boundary + CR_LF +
+            "Content-Disposition: form-data; name=\"aField\"" + CR_LF +
+            CR_LF +
+            "Here is the value of the field\n" + CR_LF +
+            boundary + "--" + CR_LF);
+
+        assertThereAreMoreParts(form);
+
+        Part field = form.next();
+        assertPartIsFormField(field);
+        assertThat(field.getContentsAsString(), equalTo("Here is the value of the field\n"));
+        assertThat(field.getFieldName(), equalTo("aField"));
 
         assertThereAreNoMoreParts(form);
     }
@@ -49,7 +124,6 @@ public class UploadFileTest {
     }
 
     @Test
-    @Ignore
     public void testFileUpload() throws Exception {
 
         String boundary = "-----1234";
@@ -79,30 +153,29 @@ public class UploadFileTest {
             assertThat(file.getFieldName(), equalTo("file"));
             assertPartIsNotField(file);
             assertThat(file.getContentType(), equalTo("text/whatever"));
-            assertThat(file.getName(), equalTo("foo.tab"));
-//        assertEquals("This is the content of the file\n", file.getString());
+            assertThat(file.getFileName(), equalTo("foo.tab"));
+            assertThat(file.getContentsAsString(), equalTo("This is the content of the file\n"));
         }
-
         {
             assertThereAreMoreParts(form);
             Part field = form.next();
-            assertThat(field.getFieldName(), equalTo("file"));
+            assertThat(field.getFieldName(), equalTo("field"));
             assertPartIsFormField(field);
-//            assertEquals("fieldValue", field.getString());
+            assertThat(field.getContentsAsString(), equalTo("fieldValue"));
         }
         {
             assertThereAreMoreParts(form);
             Part multi_1 = form.next();
-            assertThat(multi_1.getFieldName(), equalTo("file"));
+            assertThat(multi_1.getFieldName(), equalTo("multi"));
             assertPartIsFormField(multi_1);
-//            assertEquals("value1", multi0.getString());
+            assertThat(multi_1.getContentsAsString(), equalTo("value1"));
         }
         {
             assertThereAreMoreParts(form);
             Part multi_2 = form.next();
-            assertThat(multi_2.getFieldName(), equalTo("file"));
+            assertThat(multi_2.getFieldName(), equalTo("multi"));
             assertPartIsFormField(multi_2);
-//            assertEquals("value2", multi1.getString());
+            assertThat(multi_2.getContentsAsString(), equalTo("value2"));
         }
         assertThereAreNoMoreParts(form);
     }
@@ -116,10 +189,10 @@ public class UploadFileTest {
     }
 
     private void assertPartIsFormField(Part field) {
-        assertTrue("the is a form field", field.isFormField());
+        assertTrue("the part is a form field", field.isFormField());
     }
 
     private void assertPartIsNotField(Part file) {
-        assertFalse("the file is not a form field", file.isFormField());
+        assertFalse("the part is not a form field", file.isFormField());
     }
 }

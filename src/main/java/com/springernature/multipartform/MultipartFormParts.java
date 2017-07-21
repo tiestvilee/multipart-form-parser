@@ -1,5 +1,7 @@
 package com.springernature.multipartform;
 
+import com.springernature.multipartform.apache.ParameterParser;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
@@ -55,10 +57,12 @@ public class MultipartFormParts implements Iterator<Part> {
     protected static final byte[] BOUNDARY_PREFIX = {CR, LF, DASH, DASH};
 
     private final byte[] boundary;
+    private final byte[] boundaryWithPrefix;
     private final InputStream inputStream;
     private final byte[] buffer;
     private Part currentPart;
     private boolean hasNext;
+    private boolean nextIsKnown;
 
     int bufferLeft = 0;
     int bufferRight = 0;
@@ -72,11 +76,21 @@ public class MultipartFormParts implements Iterator<Part> {
         this.inputStream = inputStream;
         this.buffer = new byte[bufSize];
 
+        this.boundaryWithPrefix = addPrefixToBoundary(this.boundary);
+
         readIntoBuffer();
+        nextIsKnown = true;
         if (findBoundary()) {
             parsePart();
             hasNext = true;
         }
+    }
+
+    private byte[] addPrefixToBoundary(byte[] boundary) {
+        byte[] b = new byte[boundary.length + FIELD_SEPARATOR.length]; // in apache they just use BOUNDARY_PREFIX
+        System.arraycopy(boundary, 0, b, 2, boundary.length);
+        System.arraycopy(FIELD_SEPARATOR, 0, b, 0, FIELD_SEPARATOR.length);
+        return b;
     }
 
     private void readIntoBuffer() throws IOException {
@@ -104,7 +118,23 @@ public class MultipartFormParts implements Iterator<Part> {
 
     private void parsePart() {
         Map<String, String> headers = parseHeaders();
-        currentPart = new Part("file", false, "", "");
+        Map<String, String> contentDisposition = new ParameterParser().parse(headers.get("Content-Disposition"), ';');
+        if (contentDisposition.containsKey("form-data")) {
+            // something about ATTACHMENT
+            currentPart = new Part(
+                trim(contentDisposition.get("name")),
+                !contentDisposition.containsKey("filename"),
+                headers.get("Content-Type"),
+                trim(contentDisposition.get("filename")),
+                new BoundedInputStream());
+        }
+    }
+
+    private String trim(String string) {
+        if (string != null) {
+            return string.trim();
+        }
+        return null;
     }
 
     private Map<String, String> parseHeaders() {
@@ -114,6 +144,8 @@ public class MultipartFormParts implements Iterator<Part> {
             if (header.equals("")) {
                 return result;
             }
+            int index = header.indexOf(":");
+            result.put(header.substring(0, index).trim(), header.substring(index + 1).trim());
         }
     }
 
@@ -121,10 +153,9 @@ public class MultipartFormParts implements Iterator<Part> {
         // very inefficient search!
         while (bufferLeft < bufferRight) {
             int eolIndex = 0;
-            for (; eolIndex < eol.length && buffer[bufferLeft + eolIndex] == eol[eolIndex]; eolIndex++) ;
+            while (eolIndex < eol.length && buffer[bufferLeft + eolIndex] == eol[eolIndex]) {eolIndex++;}
             if (eolIndex == eol.length) {
                 bufferLeft += eolIndex;
-                System.out.println("found something");
                 return true;
             }
             bufferLeft++;
@@ -137,7 +168,7 @@ public class MultipartFormParts implements Iterator<Part> {
         int start = bufferLeft;
         while (bufferLeft < bufferRight) {
             int eolIndex = 0;
-            for (; eolIndex < eol.length && buffer[bufferLeft + eolIndex] == eol[eolIndex]; eolIndex++) ;
+            while (eolIndex < eol.length && buffer[bufferLeft + eolIndex] == eol[eolIndex]) {eolIndex++;}
             if (eolIndex == eol.length) {
                 bufferLeft += eolIndex;
                 return new String(buffer, start, bufferLeft - eolIndex - start);
@@ -148,15 +179,13 @@ public class MultipartFormParts implements Iterator<Part> {
     }
 
     private boolean findInBuffer(byte[] query) {
-        System.out.println("TRYING------ " + bufferLeft + " -> " + bufferRight);
         int i = 0;
         for (; (i < query.length) && (bufferLeft + i < bufferRight); i++) {
-            System.out.println(buffer[bufferLeft + i] + " == " + query[i]);
             if (buffer[bufferLeft + i] != query[i]) {
                 return false;
             }
         }
-        if(i == query.length) {
+        if (i == query.length) {
             bufferLeft += i;
             return true;
         }
@@ -165,17 +194,35 @@ public class MultipartFormParts implements Iterator<Part> {
 
     @Override public boolean hasNext() {
         // but what if we use the part after the boundary has been found...
-        return hasNext;
-    }
+        if (nextIsKnown) {
+            return hasNext;
+        }
 
-    @Override public Part next() {
-        Part oldPart = currentPart;
         if (findBoundary()) {
             parsePart();
             hasNext = true;
         } else {
             hasNext = false;
         }
-        return oldPart;
+
+        return hasNext;
+    }
+
+    @Override public Part next() {
+        nextIsKnown = false;
+        return currentPart;
+    }
+
+    private class BoundedInputStream extends InputStream {
+        @Override public int read() throws IOException {
+            int boundaryIndex = 0;
+            while (boundaryIndex < boundaryWithPrefix.length && buffer[bufferLeft + boundaryIndex] == boundaryWithPrefix[boundaryIndex]) {boundaryIndex++;}
+            if (boundaryIndex == boundaryWithPrefix.length) {
+                return -1;
+            }
+            byte result = buffer[bufferLeft];
+            bufferLeft++;
+            return result;
+        }
     }
 }
