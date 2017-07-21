@@ -73,6 +73,9 @@ public class MultipartFormParts implements Iterator<Part> {
 
     public MultipartFormParts(String boundary, InputStream inputStream, int bufSize) throws IOException {
         this.boundary = boundary.getBytes();
+        if (bufSize < this.boundary.length + FIELD_SEPARATOR.length) {
+            throw new IllegalArgumentException("bufSize must be bigger than the boundary");
+        }
         this.inputStream = inputStream;
         this.buffer = new byte[bufSize];
 
@@ -121,11 +124,12 @@ public class MultipartFormParts implements Iterator<Part> {
         Map<String, String> contentDisposition = new ParameterParser().parse(headers.get("Content-Disposition"), ';');
         if (contentDisposition.containsKey("form-data")) {
             // something about ATTACHMENT
+            String filename = contentDisposition.get("filename");
             currentPart = new Part(
                 trim(contentDisposition.get("name")),
                 !contentDisposition.containsKey("filename"),
                 headers.get("Content-Type"),
-                trim(contentDisposition.get("filename")),
+                trim(filename == null ? "" : filename),
                 new BoundedInputStream());
         }
     }
@@ -204,7 +208,7 @@ public class MultipartFormParts implements Iterator<Part> {
         } else {
             hasNext = false;
         }
-
+        nextIsKnown = true;
         return hasNext;
     }
 

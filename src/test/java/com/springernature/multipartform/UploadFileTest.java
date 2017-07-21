@@ -34,30 +34,29 @@ public class UploadFileTest {
             CR_LF +
             boundary + "--" + CR_LF);
 
-        assertThereAreMoreParts(form);
-
-        Part file = form.next();
-        assertPartIsNotField(file);
-        assertThat(file.getContentsAsString(), equalTo(""));
-        assertThat(file.getFieldName(), equalTo("aFile"));
+        assertFilePart(form, "aFile", "", "application/octet-stream", "");
 
         assertThereAreNoMoreParts(form);
     }
 
+    @Test
+    public void hasNextIsIdempotent() throws Exception {
+        String boundary = "-----2345";
+        MultipartFormParts form = getMultipartFormParts(boundary, boundary + CR_LF +
+            "Content-Disposition: form-data; name=\"aFile\"; filename=\"\"" + CR_LF +
+            "Content-Type: application/octet-stream" + CR_LF +
+            CR_LF +
+            CR_LF +
+            boundary + "--" + CR_LF);
 
-    /*
-------WebKitFormBoundaryTYNvmYSrpPPAI5OJ
-Content-Disposition: form-data; name="articleType"
+        assertThereAreMoreParts(form);
+        assertThereAreMoreParts(form);
 
-review
-------WebKitFormBoundaryTYNvmYSrpPPAI5OJ
-Content-Disposition: form-data; name="uploadManuscript"; filename=""
-Content-Type: application/octet-stream
+        form.next();
 
-
-------WebKitFormBoundaryTYNvmYSrpPPAI5OJ--
-
-     */
+        assertThereAreNoMoreParts(form);
+        assertThereAreNoMoreParts(form);
+    }
 
     @Test
     public void testEmptyField() throws Exception {
@@ -68,12 +67,7 @@ Content-Type: application/octet-stream
             CR_LF +
             boundary + "--" + CR_LF);
 
-        assertThereAreMoreParts(form);
-
-        Part field = form.next();
-        assertPartIsFormField(field);
-        assertThat(field.getContentsAsString(), equalTo(""));
-        assertThat(field.getFieldName(), equalTo("aField"));
+        assertFieldPart(form, "aField", "");
 
         assertThereAreNoMoreParts(form);
     }
@@ -82,18 +76,13 @@ Content-Type: application/octet-stream
     public void testSmallFile() throws Exception {
         String boundary = "-----2345";
         MultipartFormParts form = getMultipartFormParts(boundary, boundary + CR_LF +
-            "Content-Disposition: form-data; name=\"aFile\"; filename=\"\"" + CR_LF +
+            "Content-Disposition: form-data; name=\"aFile\"; filename=\"file.name\"" + CR_LF +
             "Content-Type: application/octet-stream" + CR_LF +
             CR_LF +
             "File contents here\n" + CR_LF +
             boundary + "--" + CR_LF);
 
-        assertThereAreMoreParts(form);
-
-        Part file = form.next();
-        assertPartIsNotField(file);
-        assertThat(file.getContentsAsString(), equalTo("File contents here\n"));
-        assertThat(file.getFieldName(), equalTo("aFile"));
+        assertFilePart(form, "aFile", "file.name", "application/octet-stream", "File contents here\n");
 
         assertThereAreNoMoreParts(form);
     }
@@ -108,19 +97,9 @@ Content-Type: application/octet-stream
             "Here is the value of the field\n" + CR_LF +
             boundary + "--" + CR_LF);
 
-        assertThereAreMoreParts(form);
-
-        Part field = form.next();
-        assertPartIsFormField(field);
-        assertThat(field.getContentsAsString(), equalTo("Here is the value of the field\n"));
-        assertThat(field.getFieldName(), equalTo("aField"));
+        assertFieldPart(form, "aField", "Here is the value of the field\n");
 
         assertThereAreNoMoreParts(form);
-    }
-
-    private MultipartFormParts getMultipartFormParts(String boundary, String multipartFormContents) throws IOException {
-        InputStream multipartFormContentsStream = new ByteArrayInputStream(multipartFormContents.getBytes(Charset.forName("UTF-8")));
-        return MultipartFormParts.parse(boundary, multipartFormContentsStream);
     }
 
     @Test
@@ -147,37 +126,35 @@ Content-Type: application/octet-stream
             "value2" + CR_LF +
             boundary + "--" + CR_LF);
 
-        {
-            assertThereAreMoreParts(form);
-            Part file = form.next();
-            assertThat(file.getFieldName(), equalTo("file"));
-            assertPartIsNotField(file);
-            assertThat(file.getContentType(), equalTo("text/whatever"));
-            assertThat(file.getFileName(), equalTo("foo.tab"));
-            assertThat(file.getContentsAsString(), equalTo("This is the content of the file\n"));
-        }
-        {
-            assertThereAreMoreParts(form);
-            Part field = form.next();
-            assertThat(field.getFieldName(), equalTo("field"));
-            assertPartIsFormField(field);
-            assertThat(field.getContentsAsString(), equalTo("fieldValue"));
-        }
-        {
-            assertThereAreMoreParts(form);
-            Part multi_1 = form.next();
-            assertThat(multi_1.getFieldName(), equalTo("multi"));
-            assertPartIsFormField(multi_1);
-            assertThat(multi_1.getContentsAsString(), equalTo("value1"));
-        }
-        {
-            assertThereAreMoreParts(form);
-            Part multi_2 = form.next();
-            assertThat(multi_2.getFieldName(), equalTo("multi"));
-            assertPartIsFormField(multi_2);
-            assertThat(multi_2.getContentsAsString(), equalTo("value2"));
-        }
+        assertFilePart(form, "file", "foo.tab", "text/whatever", "This is the content of the file\n");
+        assertFieldPart(form, "field", "fieldValue");
+        assertFieldPart(form, "multi", "value1");
+        assertFieldPart(form, "multi", "value2");
+
         assertThereAreNoMoreParts(form);
+    }
+
+    private MultipartFormParts getMultipartFormParts(String boundary, String multipartFormContents) throws IOException {
+        InputStream multipartFormContentsStream = new ByteArrayInputStream(multipartFormContents.getBytes(Charset.forName("UTF-8")));
+        return MultipartFormParts.parse(boundary, multipartFormContentsStream);
+    }
+
+    private void assertFilePart(MultipartFormParts form, String fieldName, String fileName, String contentType, String contents) throws IOException {
+        assertThereAreMoreParts(form);
+        Part file = form.next();
+        assertThat(file.getFieldName(), equalTo(fieldName));
+        assertPartIsNotField(file);
+        assertThat(file.getContentType(), equalTo(contentType));
+        assertThat(file.getFileName(), equalTo(fileName));
+        assertThat(file.getContentsAsString(), equalTo(contents));
+    }
+
+    private void assertFieldPart(MultipartFormParts form, String fieldName, String fieldValue) throws IOException {
+        assertThereAreMoreParts(form);
+        Part field = form.next();
+        assertThat(field.getFieldName(), equalTo(fieldName));
+        assertPartIsFormField(field);
+        assertThat(field.getContentsAsString(), equalTo(fieldValue));
     }
 
     private void assertThereAreNoMoreParts(MultipartFormParts form) {

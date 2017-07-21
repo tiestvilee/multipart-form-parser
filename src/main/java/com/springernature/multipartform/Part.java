@@ -53,7 +53,6 @@ public class Part  extends InputStream implements Closeable {
 
         while (true) {
             int count = inputStream.read(bytes, length, maxLength - length);
-            System.out.println("count = " + count);
             if (count < 0) {
                 break;
             }
