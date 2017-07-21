@@ -19,7 +19,7 @@ public class UploadFileTest {
     @Test
     public void testEmptyContents() throws Exception {
         String boundary = "-----1234";
-        MultipartFormParts form = getMultipartFormParts(boundary, boundary + "--" + CR_LF);
+        MultipartFormParts form = getMultipartFormParts(boundary, new ValidMultipartFormBuilder(boundary).build());
 
         assertThereAreNoMoreParts(form);
     }
@@ -27,14 +27,10 @@ public class UploadFileTest {
     @Test
     public void testEmptyFile() throws Exception {
         String boundary = "-----2345";
-        MultipartFormParts form = getMultipartFormParts(boundary, boundary + CR_LF +
-            "Content-Disposition: form-data; name=\"aFile\"; filename=\"\"" + CR_LF +
-            "Content-Type: application/octet-stream" + CR_LF +
-            CR_LF +
-            CR_LF +
-            boundary + "--" + CR_LF);
+        MultipartFormParts form = getMultipartFormParts(boundary, new ValidMultipartFormBuilder(boundary)
+            .file("aFile", "", "doesnt/matter", "").build());
 
-        assertFilePart(form, "aFile", "", "application/octet-stream", "");
+        assertFilePart(form, "aFile", "", "doesnt/matter", "");
 
         assertThereAreNoMoreParts(form);
     }
@@ -42,12 +38,8 @@ public class UploadFileTest {
     @Test
     public void hasNextIsIdempotent() throws Exception {
         String boundary = "-----2345";
-        MultipartFormParts form = getMultipartFormParts(boundary, boundary + CR_LF +
-            "Content-Disposition: form-data; name=\"aFile\"; filename=\"\"" + CR_LF +
-            "Content-Type: application/octet-stream" + CR_LF +
-            CR_LF +
-            CR_LF +
-            boundary + "--" + CR_LF);
+        MultipartFormParts form = getMultipartFormParts(boundary, new ValidMultipartFormBuilder(boundary)
+            .file("aFile", "", "application/octet-stream", "").build());
 
         assertThereAreMoreParts(form);
         assertThereAreMoreParts(form);
@@ -61,11 +53,8 @@ public class UploadFileTest {
     @Test
     public void testEmptyField() throws Exception {
         String boundary = "-----3456";
-        MultipartFormParts form = getMultipartFormParts(boundary, boundary + CR_LF +
-            "Content-Disposition: form-data; name=\"aField\"" + CR_LF +
-            CR_LF +
-            CR_LF +
-            boundary + "--" + CR_LF);
+        MultipartFormParts form = getMultipartFormParts(boundary, new ValidMultipartFormBuilder(boundary)
+            .field("aField", "").build());
 
         assertFieldPart(form, "aField", "");
 
@@ -75,14 +64,10 @@ public class UploadFileTest {
     @Test
     public void testSmallFile() throws Exception {
         String boundary = "-----2345";
-        MultipartFormParts form = getMultipartFormParts(boundary, boundary + CR_LF +
-            "Content-Disposition: form-data; name=\"aFile\"; filename=\"file.name\"" + CR_LF +
-            "Content-Type: application/octet-stream" + CR_LF +
-            CR_LF +
-            "File contents here\n" + CR_LF +
-            boundary + "--" + CR_LF);
+        MultipartFormParts form = getMultipartFormParts(boundary, new ValidMultipartFormBuilder(boundary)
+            .file("aFile", "file.name", "application/octet-stream", "File contents here").build());
 
-        assertFilePart(form, "aFile", "file.name", "application/octet-stream", "File contents here\n");
+        assertFilePart(form, "aFile", "file.name", "application/octet-stream", "File contents here");
 
         assertThereAreNoMoreParts(form);
     }
@@ -91,11 +76,8 @@ public class UploadFileTest {
     @Test
     public void testSmallField() throws Exception {
         String boundary = "-----3456";
-        MultipartFormParts form = getMultipartFormParts(boundary, boundary + CR_LF +
-            "Content-Disposition: form-data; name=\"aField\"" + CR_LF +
-            CR_LF +
-            "Here is the value of the field\n" + CR_LF +
-            boundary + "--" + CR_LF);
+        MultipartFormParts form = getMultipartFormParts(boundary, new ValidMultipartFormBuilder(boundary)
+            .field("aField", "Here is the value of the field\n").build());
 
         assertFieldPart(form, "aField", "Here is the value of the field\n");
 
@@ -106,25 +88,13 @@ public class UploadFileTest {
     public void testFileUpload() throws Exception {
 
         String boundary = "-----1234";
-        MultipartFormParts form = getMultipartFormParts(boundary, boundary + CR_LF +
-            "Content-Disposition: form-data; name=\"file\"; filename=\"foo.tab\"" + CR_LF +
-            "Content-Type: text/whatever" + CR_LF +
-            CR_LF +
-            "This is the content of the file\n" +
-            CR_LF +
-            boundary + CR_LF +
-            "Content-Disposition: form-data; name=\"field\"" + CR_LF +
-            CR_LF +
-            "fieldValue" + CR_LF +
-            boundary + CR_LF +
-            "Content-Disposition: form-data; name=\"multi\"" + CR_LF +
-            CR_LF +
-            "value1" + CR_LF +
-            boundary + CR_LF +
-            "Content-Disposition: form-data; name=\"multi\"" + CR_LF +
-            CR_LF +
-            "value2" + CR_LF +
-            boundary + "--" + CR_LF);
+        MultipartFormParts form = getMultipartFormParts(boundary,
+            new ValidMultipartFormBuilder(boundary)
+                .file("file", "foo.tab", "text/whatever", "This is the content of the file\n")
+                .field("field", "fieldValue")
+                .field("multi", "value1")
+                .field("multi", "value2")
+                .build());
 
         assertFilePart(form, "file", "foo.tab", "text/whatever", "This is the content of the file\n");
         assertFieldPart(form, "field", "fieldValue");
