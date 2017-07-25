@@ -42,7 +42,13 @@ public class UploadFileTest {
     public void hasNextIsIdempotent() throws Exception {
         String boundary = "-----2345";
         MultipartFormParts form = getMultipartFormParts(boundary, new ValidMultipartFormBuilder(boundary)
-            .file("aFile", "", "application/octet-stream", "").build());
+            .file("aFile", "", "application/octet-stream", "")
+            .file("anotherFile", "", "application/octet-stream", "").build());
+
+        assertThereAreMoreParts(form);
+        assertThereAreMoreParts(form);
+
+        form.next();
 
         assertThereAreMoreParts(form);
         assertThereAreMoreParts(form);

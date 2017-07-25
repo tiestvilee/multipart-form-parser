@@ -61,8 +61,10 @@ public class MultipartFormParts implements Iterator<Part> {
     private final InputStream inputStream;
     private final byte[] buffer;
     private Part currentPart;
-    private boolean hasNext;
+    private boolean isEOS;
     private boolean nextIsKnown;
+
+    private MultipartFormStreamState state = MultipartFormStreamState.findBoundary;
 
     int bufferLeft = 0;
     int bufferRight = 0;
@@ -82,10 +84,14 @@ public class MultipartFormParts implements Iterator<Part> {
         this.boundaryWithPrefix = addPrefixToBoundary(this.boundary);
 
         readIntoBuffer();
+
         nextIsKnown = true;
-        if (findBoundary()) {
+        findBoundary();
+        if (state == MultipartFormStreamState.header) {
             parsePart();
-            hasNext = true;
+            isEOS = false;
+        } else {
+            isEOS = true;
         }
     }
 
@@ -101,26 +107,29 @@ public class MultipartFormParts implements Iterator<Part> {
         bufferRight = inputStream.read(buffer, 0, buffer.length);
     }
 
-    private boolean findBoundary() {
+    private void findBoundary() {
+        assertStateIs(MultipartFormStreamState.findBoundary);
+
         if (!dropFromBufferUntilFound(boundary)) {
             // what about when this isn't at the beginning of a line...
             throw new RuntimeException("BAD - couldn't find boundary");
         }
+        state = MultipartFormStreamState.boundaryFound;
         if (findInBuffer(STREAM_TERMINATOR) && findInBuffer(FIELD_SEPARATOR)) {
             // what if the stream terminator is found but the field separator isn't...
-            currentPart = null;
-            return false;
+            state = MultipartFormStreamState.eos;
         } else {
             if (!findInBuffer(FIELD_SEPARATOR)) {
                 throw new RuntimeException("WTF - no field separator following boundary");
             } else {
-                return true;
+                state = MultipartFormStreamState.header;
             }
         }
     }
 
     private void parsePart() {
         Map<String, String> headers = parseHeaderLines();
+
         Map<String, String> contentDisposition = new ParameterParser().parse(headers.get("Content-Disposition"), ';');
         if (contentDisposition.containsKey("form-data")) {
             // something about ATTACHMENT
@@ -142,11 +151,14 @@ public class MultipartFormParts implements Iterator<Part> {
     }
 
     private Map<String, String> parseHeaderLines() {
+        assertStateIs(MultipartFormStreamState.header);
+
         Map<String, String> result = new HashMap<>();
         String previousHeaderName = null;
         while (true) {
             String header = readStringFromBufferUntil(FIELD_SEPARATOR);
             if (header.equals("")) {
+                state = MultipartFormStreamState.contents;
                 return result;
             }
             if (header.matches("\\s+.*")) {
@@ -209,17 +221,26 @@ public class MultipartFormParts implements Iterator<Part> {
     @Override public boolean hasNext() {
         // but what if we use the part after the boundary has been found...
         if (nextIsKnown) {
-            return hasNext;
-        }
-
-        if (findBoundary()) {
-            parsePart();
-            hasNext = true;
-        } else {
-            hasNext = false;
+            return !isEOS;
         }
         nextIsKnown = true;
-        return hasNext;
+
+        if (state == MultipartFormStreamState.contents) {
+            try {
+                currentPart.close();
+            } catch (Exception e) {
+                /* ???? */
+            }
+        }
+
+        findBoundary();
+        if (state == MultipartFormStreamState.header) {
+            parsePart();
+            isEOS = false;
+        } else {
+            isEOS = true;
+        }
+        return !isEOS;
     }
 
     @Override public Part next() {
@@ -228,15 +249,40 @@ public class MultipartFormParts implements Iterator<Part> {
     }
 
     private class BoundedInputStream extends InputStream {
+        boolean endOfStream = false;
+
         @Override public int read() throws IOException {
+            if (endOfStream) {
+                return -1;
+            }
+
             int boundaryIndex = 0;
             while (boundaryIndex < boundaryWithPrefix.length && buffer[bufferLeft + boundaryIndex] == boundaryWithPrefix[boundaryIndex]) {boundaryIndex++;}
             if (boundaryIndex == boundaryWithPrefix.length) {
+                state = MultipartFormStreamState.findBoundary;
+                endOfStream = true;
                 return -1;
             }
             byte result = buffer[bufferLeft];
             bufferLeft++;
             return result;
         }
+
+        @Override public void close() {
+            endOfStream = true;
+            if (state == MultipartFormStreamState.contents) {
+                state = MultipartFormStreamState.findBoundary;
+            }
+        }
+    }
+
+    private void assertStateIs(MultipartFormStreamState expectedState) {
+        if (expectedState != state) {
+            throw new IllegalStateException("Expected state " + expectedState + " but got " + state);
+        }
+    }
+
+    private enum MultipartFormStreamState {
+        findBoundary, boundaryFound, eos, header, contents, error
     }
 }

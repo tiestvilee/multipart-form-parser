@@ -26,6 +26,10 @@ public class Part  extends InputStream implements Closeable {
         throw new UnsupportedOperationException("read not implemented");
     }
 
+    @Override public void close() throws IOException {
+        inputStream.close();
+    }
+
     public String getFieldName() {
         return fieldName;
     }
@@ -57,6 +61,7 @@ public class Part  extends InputStream implements Closeable {
         while (true) {
             int count = inputStream.read(bytes, length, maxLength - length);
             if (count < 0) {
+                inputStream.close();
                 break;
             }
             length += count;
