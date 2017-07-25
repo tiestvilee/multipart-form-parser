@@ -1,5 +1,6 @@
 package com.springernature.multipartform;
 
+import com.springernature.multipartform.exceptions.AlreadyClosedException;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
@@ -12,8 +13,8 @@ import static com.googlecode.totallylazy.Pair.pair;
 import static com.googlecode.totallylazy.Sequences.sequence;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.*;
 
 public class UploadFileTest {
 
@@ -114,6 +115,7 @@ public class UploadFileTest {
         assertThereAreNoMoreParts(form);
     }
 
+
     /*
     @Test
     public void testFILEUPLOAD62() throws Exception {
@@ -156,7 +158,6 @@ public class UploadFileTest {
         assertEquals("...contents of file2.gif...", new String(item2.get()));
     }
      */
-
     @Test
     public void uploadMultipartFormWithSubParts() throws Exception {
 
@@ -218,6 +219,73 @@ public class UploadFileTest {
         assertThat(fieldHeaders.get("Another-header"), equalTo("some-key=\"some-value\""));
 
         assertThereAreNoMoreParts(form);
+    }
+
+    @Test
+    public void closedPartsCannotBeReadFrom() throws Exception {
+        String boundary = "-----2345";
+        MultipartFormParts form = getMultipartFormParts(boundary, new ValidMultipartFormBuilder(boundary)
+            .file("aFile", "file.name", "application/octet-stream", "File contents here").build());
+
+        Part file = form.next();
+
+        while (file.read() > 0) {
+            // keep reading.
+        }
+
+        assertThat(file.read(), equalTo(-1));
+        file.close();
+        file.close(); // can close multiple times
+        try {
+            int ignored = file.read();
+            fail("Should have complained that the part has been closed " + ignored);
+        } catch (AlreadyClosedException e) {
+            // pass
+        }
+    }
+
+    @Test
+    public void readingPartsContentsAsStringClosesStream() throws Exception {
+        String boundary = "-----2345";
+        MultipartFormParts form = getMultipartFormParts(boundary, new ValidMultipartFormBuilder(boundary)
+            .file("aFile", "file.name", "application/octet-stream", "File contents here").build());
+
+        Part file = form.next();
+        file.getContentsAsString();
+
+        try {
+            int ignored = file.read();
+            fail("Should have complained that the part has been closed " + ignored);
+        } catch (AlreadyClosedException e) {
+            // pass
+        }
+
+        file.close(); // can close multiple times
+    }
+
+    @Test
+    public void gettingNextPartClosesOldPart() throws Exception {
+        String boundary = "-----2345";
+        MultipartFormParts form = getMultipartFormParts(boundary, new ValidMultipartFormBuilder(boundary)
+            .file("aFile", "file.name", "application/octet-stream", "File contents here")
+            .file("anotherFile", "your.name", "application/octet-stream", "Different file contents here").build());
+
+        Part file1 = form.next();
+
+        Part file2 = form.next();
+
+        assertThat(file1, not(equalTo(file2)));
+
+        try {
+            int ignored = file1.read();
+            fail("Should have complained that the part has been closed " + ignored);
+        } catch (AlreadyClosedException e) {
+            // pass
+        }
+
+        file1.close(); // can close multiple times
+
+        assertThat(file2.getContentsAsString(), equalTo("Different file contents here"));
     }
 
     private MultipartFormParts getMultipartFormParts(String boundary, String multipartFormContents) throws IOException {

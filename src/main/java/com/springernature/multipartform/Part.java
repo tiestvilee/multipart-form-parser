@@ -23,7 +23,7 @@ public class Part  extends InputStream implements Closeable {
     }
 
     @Override public int read() throws IOException {
-        throw new UnsupportedOperationException("read not implemented");
+        return inputStream.read();
     }
 
     @Override public void close() throws IOException {
