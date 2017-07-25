@@ -57,14 +57,17 @@ public class MultipartFormParts implements Iterator<Part> {
      */
     protected static final byte[] BOUNDARY_PREFIX = {CR, LF, DASH, DASH};
 
-    private final byte[] boundary;
-    private final byte[] boundaryWithPrefix;
     private final MfpBufferedInputStream buf;
     private Part currentPart;
     private boolean isEndOfStream;
     private boolean nextIsKnown;
 
+    private byte[] boundary;
+    private byte[] boundaryWithPrefix;
     private MultipartFormStreamState state = MultipartFormStreamState.findBoundary;
+    private String mixedName = null;
+    private byte[] oldBoundary = null;
+    private byte[] oldBoundaryWithPrefix;
 
     public static MultipartFormParts parse(String boundary, InputStream inputStream) throws IOException {
         return new MultipartFormParts(boundary, inputStream, DEFAULT_BUFSIZE);
@@ -94,12 +97,21 @@ public class MultipartFormParts implements Iterator<Part> {
 
         if (!buf.dropFromBufferUntilFound(boundary)) {
             // what about when this isn't at the beginning of a line...
-            throw new RuntimeException("BAD - couldn't find boundary");
+            throw new RuntimeException("BAD - couldn't find boundary <<" + new String(boundary) + ">> in <<" + new String(buf.lastBytes(boundary.length + 8)) + ">>");
         }
         state = MultipartFormStreamState.boundaryFound;
         if (buf.findInBuffer(STREAM_TERMINATOR) && buf.findInBuffer(FIELD_SEPARATOR)) {
             // what if the stream terminator is found but the field separator isn't...
-            state = MultipartFormStreamState.eos;
+            if (mixedName != null) {
+                boundary = oldBoundary;
+                boundaryWithPrefix = oldBoundaryWithPrefix;
+                mixedName = null;
+
+                state = MultipartFormStreamState.findBoundary;
+                findBoundary();
+            } else {
+                state = MultipartFormStreamState.eos;
+            }
         } else {
             if (!buf.findInBuffer(FIELD_SEPARATOR)) {
                 throw new RuntimeException("WTF - no field separator following boundary");
@@ -162,18 +174,43 @@ public class MultipartFormParts implements Iterator<Part> {
     private void parsePart() {
         Map<String, String> headers = parseHeaderLines();
 
-        Map<String, String> contentDisposition = new ParameterParser().parse(headers.get("Content-Disposition"), ';');
-        if (contentDisposition.containsKey("form-data")) {
-            // something about ATTACHMENT
-            String filename = contentDisposition.get("filename");
-            currentPart = new Part(
-                trim(contentDisposition.get("name")),
-                !contentDisposition.containsKey("filename"),
-                headers.get("Content-Type"),
-                trim(filename == null ? "" : filename),
-                new BoundedInputStream(), headers);
+        String contentType = headers.get("Content-Type");
+        if (contentType != null && contentType.startsWith("multipart/mixed")) {
+            Map<String, String> contentDisposition = new ParameterParser().parse(headers.get("Content-Disposition"), ';');
+            Map<String, String> contentTypeParams = new ParameterParser().parse(contentType, ';');
+
+            mixedName = trim(contentDisposition.get("name"));
+
+            oldBoundary = boundary;
+            oldBoundaryWithPrefix = boundaryWithPrefix;
+            boundary = ("--" + trim(contentTypeParams.get("boundary"))).getBytes();
+            boundaryWithPrefix = addPrefixToBoundary(this.boundary);
+
+            state = MultipartFormStreamState.findBoundary;
+
+            parseNextPart();
+        } else {
+            Map<String, String> contentDisposition = new ParameterParser().parse(headers.get("Content-Disposition"), ';');
+            if (contentDisposition.containsKey("form-data")) {
+                String filename = contentDisposition.get("filename");
+                currentPart = new Part(
+                    trim(contentDisposition.get("name")),
+                    !contentDisposition.containsKey("filename"),
+                    contentType,
+                    trim(filename == null ? "" : filename),
+                    new BoundedInputStream(), headers);
+            } else if (contentDisposition.containsKey("attachment")) {
+                String filename = contentDisposition.get("filename");
+                currentPart = new Part(
+                    mixedName,
+                    !contentDisposition.containsKey("filename"),
+                    contentType,
+                    trim(filename == null ? "" : filename),
+                    new BoundedInputStream(), headers);
+            }
         }
     }
+
 
     private String trim(String string) {
         if (string != null) {

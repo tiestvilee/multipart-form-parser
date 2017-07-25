@@ -82,6 +82,26 @@ public class UploadFileTest {
         assertThereAreNoMoreParts(form);
     }
 
+    @Test
+    public void uploadSmallFileAsAttachment() throws Exception {
+        String boundary = "-----4567";
+        MultipartFormParts form = getMultipartFormParts(boundary, new ValidMultipartFormBuilder(boundary)
+            .file("beforeFile", "before.txt", "application/json", "[]")
+            .startMultipart("multipartFieldName", "7890")
+            .attachment("during.txt", "plain/text", "Attachment contents here")
+            .attachment("during2.txt", "plain/text", "More text here")
+            .endMultipart()
+            .file("afterFile", "after.txt", "application/json", "[]")
+            .build());
+
+        assertFilePart(form, "beforeFile", "before.txt", "application/json", "[]");
+        assertFilePart(form, "multipartFieldName", "during.txt", "plain/text", "Attachment contents here");
+        assertFilePart(form, "multipartFieldName", "during2.txt", "plain/text", "More text here");
+        assertFilePart(form, "afterFile", "after.txt", "application/json", "[]");
+
+        assertThereAreNoMoreParts(form);
+    }
+
 
     @Test
     public void uploadSmallField() throws Exception {

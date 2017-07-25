@@ -75,4 +75,11 @@ public class MfpBufferedInputStream {
         bufferLeft++;
         return result;
     }
+
+    public byte[] lastBytes(int numberOfBytes) {
+        numberOfBytes = Math.min(numberOfBytes, bufferLeft);
+        byte[] result = new byte[numberOfBytes];
+        System.arraycopy(buffer, bufferLeft - numberOfBytes, result, 0, numberOfBytes);
+        return result;
+    }
 }
