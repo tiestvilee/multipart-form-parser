@@ -1,85 +1,118 @@
 package com.springernature.multipartform;
 
+import com.springernature.multipartform.exceptions.TokenNotFoundException;
+
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
 public class MfpBufferedInputStream {
-    private final InputStream inputStream;
-    private final byte[] buffer;
-
-    private int bufferLeft = 0;
-    private int bufferRight = 0;
+    private final BufferedInputStream inputStream;
 
     public MfpBufferedInputStream(InputStream inputStream, int bufSize) throws IOException {
-        this.inputStream = inputStream;
-        this.buffer = new byte[bufSize];
-
-        readIntoBuffer();
+        this.inputStream = new BufferedInputStream(inputStream, bufSize);
     }
 
-    private void readIntoBuffer() throws IOException {
-        bufferLeft = 0;
-        bufferRight = inputStream.read(buffer, 0, buffer.length);
-    }
-
-    public boolean dropFromBufferUntilFound(byte[] eol) {
+    /**
+     * Consumes all bytes up to and including the matched endOfToken bytes.
+     *
+     * @param endOfToken bytes that indicate the end of this token.
+     * @return true if token found, false if not.
+     * @throws IOException
+     */
+    public boolean dropFromStreamUntilMatched(byte[] endOfToken) throws IOException {
         // very inefficient search!
-        while (bufferLeft < bufferRight) {
-            int eolIndex = 0;
-            while (eolIndex < eol.length && buffer[bufferLeft + eolIndex] == eol[eolIndex]) {eolIndex++;}
-            if (eolIndex == eol.length) {
-                bufferLeft += eolIndex;
+        int b;
+        while ((b = inputStream.read()) > -1) {
+            inputStream.mark(endOfToken.length);
+            if (matchToken(endOfToken, b) == endOfToken.length) {
                 return true;
             }
-            bufferLeft++;
+            inputStream.reset();
         }
         return false;
     }
 
-    public String readStringFromBufferUntil(byte[] eol) {
+    /**
+     * Consumes all bytes up to and including the matched endOfToken bytes. Returns a
+     * String made up of those bytes, excluding the matched endOfToken bytes.
+     *
+     * @param endOfToken           bytes that indicate the end of this token
+     * @param maxStringSizeInBytes maximum size of String to return
+     * @return a String made of all the bytes consumed, excluding the endOfToken bytes
+     * @throws IOException
+     */
+    public String readStringFromStreamUntilMatched(byte[] endOfToken, int maxStringSizeInBytes) throws IOException {
         // very inefficient search!
-        int start = bufferLeft;
-        while (bufferLeft < bufferRight) {
-            int eolIndex = 0;
-            while (eolIndex < eol.length && buffer[bufferLeft + eolIndex] == eol[eolIndex]) {eolIndex++;}
-            if (eolIndex == eol.length) {
-                bufferLeft += eolIndex;
-                return new String(buffer, start, bufferLeft - eolIndex - start);
+        byte[] buffer = new byte[maxStringSizeInBytes];
+        int bufferIndex = 0;
+
+        int b;
+        while ((b = inputStream.read()) > -1) {
+            byte originalB = (byte) b;
+            inputStream.mark(endOfToken.length);
+            if (matchToken(endOfToken, b) == endOfToken.length) {
+                return new String(buffer, 0, bufferIndex);
             }
-            bufferLeft++;
+            buffer[bufferIndex++] = originalB;
+            inputStream.reset();
         }
-        throw new RuntimeException("BAD got to end of stream before finishing header");
+
+        throw new TokenNotFoundException(
+            "Didn't find Token <<" + new String(endOfToken) + ">>. " +
+                "Last " + endOfToken.length + " bytes read were " +
+                "<<" + new String(buffer, bufferIndex - endOfToken.length, endOfToken.length) + ">>");
     }
 
-    public boolean findInBuffer(byte[] query) {
-        int i = 0;
-        for (; (i < query.length) && (bufferLeft + i < bufferRight); i++) {
-            if (buffer[bufferLeft + i] != query[i]) {
-                return false;
-            }
+    private int matchToken(byte[] endOfToken, int b) throws IOException {
+        int eotIndex = 0;
+        while (b > -1 && b == endOfToken[eotIndex] && (++eotIndex) < endOfToken.length) {
+            b = inputStream.read();
         }
-        if (i == query.length) {
-            bufferLeft += i;
+        return eotIndex;
+    }
+
+    /**
+     * Tries to match the token bytes at the current position. Only consumes bytes
+     * if there is a match, otherwise the stream is unaffected.
+     *
+     * @param token The token being matched
+     * @return true if the token is found (and the bytes have been consumed),
+     * false if it isn't found (and the stream is unchanged)
+     */
+    public boolean matchInStream(byte[] token) throws IOException {
+        inputStream.mark(token.length);
+
+        if (matchToken(token, inputStream.read()) == token.length) {
             return true;
         }
+
+        inputStream.reset();
         return false;
     }
 
-    public int readByteFromBufferUntil(byte[] boundaryWithPrefix) {
-        int boundaryIndex = 0;
-        while (boundaryIndex < boundaryWithPrefix.length && buffer[bufferLeft + boundaryIndex] == boundaryWithPrefix[boundaryIndex]) {boundaryIndex++;}
-        if (boundaryIndex == boundaryWithPrefix.length) {
+    /**
+     * returns a single byte from the Stream until the token is found. When the token is found,
+     * -1 will be returned, and the token will still be available on the stream. Inconsistent.
+     *
+     * @param endOfToken bytes that indicate the end of this token
+     * @return the next byte in the stream, or -1 if the token is found. The token is NOT consumed
+     * when it is matched.
+     */
+    public int readByteFromStreamUntilMatched(byte[] endOfToken) throws IOException {
+        inputStream.mark(endOfToken.length);
+        int b = inputStream.read();
+        int eotIndex = 0;
+        while (eotIndex < endOfToken.length && b == endOfToken[eotIndex]) { b = inputStream.read(); eotIndex++;}
+        if (eotIndex == endOfToken.length) {
+            inputStream.reset();
             return -1;
         }
-        byte result = buffer[bufferLeft];
-        bufferLeft++;
-        return result;
+        inputStream.reset();
+        return inputStream.read();
     }
 
     public byte[] lastBytes(int numberOfBytes) {
-        numberOfBytes = Math.min(numberOfBytes, bufferLeft);
-        byte[] result = new byte[numberOfBytes];
-        System.arraycopy(buffer, bufferLeft - numberOfBytes, result, 0, numberOfBytes);
-        return result;
+        return "Sorry, not available".getBytes();
     }
 }
