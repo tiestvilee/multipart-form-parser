@@ -6,10 +6,10 @@ import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
-public class MfpBufferedInputStream {
+public class TokenBoundedInputStream {
     private final BufferedInputStream inputStream;
 
-    public MfpBufferedInputStream(InputStream inputStream, int bufSize) throws IOException {
+    public TokenBoundedInputStream(InputStream inputStream, int bufSize) throws IOException {
         this.inputStream = new BufferedInputStream(inputStream, bufSize);
     }
 

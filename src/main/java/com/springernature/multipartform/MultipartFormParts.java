@@ -2,6 +2,7 @@ package com.springernature.multipartform;
 
 import com.springernature.multipartform.apache.ParameterParser;
 import com.springernature.multipartform.exceptions.AlreadyClosedException;
+import com.springernature.multipartform.exceptions.TokenNotFoundException;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -57,7 +58,7 @@ public class MultipartFormParts implements Iterator<Part> {
      */
     protected static final byte[] BOUNDARY_PREFIX = {CR, LF, DASH, DASH};
 
-    private final MfpBufferedInputStream buf;
+    private final TokenBoundedInputStream buf;
     private Part currentPart;
     private boolean isEndOfStream;
     private boolean nextIsKnown;
@@ -78,7 +79,7 @@ public class MultipartFormParts implements Iterator<Part> {
         if (bufSize < this.boundary.length + FIELD_SEPARATOR.length) {
             throw new IllegalArgumentException("bufSize must be bigger than the boundary");
         }
-        buf = new MfpBufferedInputStream(inputStream, bufSize);
+        buf = new TokenBoundedInputStream(inputStream, bufSize);
 
         this.boundaryWithPrefix = addPrefixToBoundary(this.boundary);
 
@@ -97,7 +98,7 @@ public class MultipartFormParts implements Iterator<Part> {
 
         if (!buf.dropFromStreamUntilMatched(boundary)) {
             // what about when this isn't at the beginning of a line...
-            throw new RuntimeException("BAD - couldn't find boundary <<" + new String(boundary) + ">> in <<" + new String(buf.lastBytes(boundary.length + 8)) + ">>");
+            throw new TokenNotFoundException("couldn't find boundary <<" + new String(boundary) + ">>");
         }
         state = MultipartFormStreamState.boundaryFound;
         if (buf.matchInStream(STREAM_TERMINATOR) && buf.matchInStream(FIELD_SEPARATOR)) {
@@ -114,7 +115,7 @@ public class MultipartFormParts implements Iterator<Part> {
             }
         } else {
             if (!buf.matchInStream(FIELD_SEPARATOR)) {
-                throw new RuntimeException("WTF - no field separator following boundary");
+                throw new TokenNotFoundException("Expected field separator, but didn't find it");
             } else {
                 state = MultipartFormStreamState.header;
             }
@@ -201,23 +202,14 @@ public class MultipartFormParts implements Iterator<Part> {
             parseNextPart();
         } else {
             Map<String, String> contentDisposition = new ParameterParser().parse(headers.get("Content-Disposition"), ';');
-            if (contentDisposition.containsKey("form-data")) {
-                String filename = contentDisposition.get("filename");
-                currentPart = new Part(
-                    trim(contentDisposition.get("name")),
-                    !contentDisposition.containsKey("filename"),
-                    contentType,
-                    trim(filename == null ? "" : filename),
-                    new BoundedInputStream(), headers);
-            } else if (contentDisposition.containsKey("attachment")) {
-                String filename = contentDisposition.get("filename");
-                currentPart = new Part(
-                    mixedName,
-                    !contentDisposition.containsKey("filename"),
-                    contentType,
-                    trim(filename == null ? "" : filename),
-                    new BoundedInputStream(), headers);
-            }
+            String fieldName = contentDisposition.containsKey("attachment") ? mixedName : trim(contentDisposition.get("name"));
+            String filename = contentDisposition.get("filename");
+            currentPart = new Part(
+                fieldName,
+                !contentDisposition.containsKey("filename"),
+                contentType,
+                trim(filename == null ? "" : filename),
+                new BoundedInputStream(), headers);
         }
     }
 
