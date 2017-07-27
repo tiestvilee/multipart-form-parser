@@ -212,7 +212,7 @@ public class MultipartFormParts implements Iterator<Part> {
                 !contentDisposition.containsKey("filename"),
                 contentType,
                 trim(filename == null ? "" : filename),
-                new BoundedInputStream(), headers, encoding);
+                new BoundedInputStream(), headers);
         }
     }
 

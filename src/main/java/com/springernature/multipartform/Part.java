@@ -4,6 +4,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 public class Part  extends InputStream implements Closeable {
@@ -13,16 +14,14 @@ public class Part  extends InputStream implements Closeable {
     private final String fileName;
     private final InputStream inputStream;
     private final Map<String, String> headers;
-    private final Charset encoding;
 
-    public Part(String fieldName, boolean formField, String contentType, String fileName, InputStream inputStream, Map<String, String> headers, Charset encoding) {
+    public Part(String fieldName, boolean formField, String contentType, String fileName, InputStream inputStream, Map<String, String> headers) {
         this.fieldName = fieldName;
         this.formField = formField;
         this.contentType = contentType;
         this.fileName = fileName;
         this.inputStream = inputStream;
         this.headers = headers;
-        this.encoding = encoding;
     }
 
     @Override public int read() throws IOException {
@@ -54,10 +53,10 @@ public class Part  extends InputStream implements Closeable {
     }
 
     public String getContentsAsString() throws IOException {
-        return getContentsAsString(4096);
+        return getContentsAsString(4096, StandardCharsets.UTF_8);
     }
 
-    public String getContentsAsString(int maxLength) throws IOException {
+    public String getContentsAsString(int maxLength, Charset encoding) throws IOException {
         byte[] bytes = new byte[maxLength];
         int length = 0;
 

@@ -7,6 +7,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 import static com.googlecode.totallylazy.Pair.pair;
@@ -270,26 +271,34 @@ public class StreamingMultipartFormHappyTests {
     }
 
     static Part assertFilePart(MultipartFormParts form, String fieldName, String fileName, String contentType, String contents) throws IOException {
+        return assertFilePart(form, fieldName, fileName, contentType, contents, StandardCharsets.UTF_8);
+    }
+
+    static Part assertFilePart(MultipartFormParts form, String fieldName, String fileName, String contentType, String contents, Charset encoding) throws IOException {
         assertThereAreMoreParts(form);
         Part file = form.next();
         assertThat("file name", file.getFileName(), equalTo(fileName));
         assertThat("content type", file.getContentType(), equalTo(contentType));
         assertPartIsNotField(file);
-        assertPart(fieldName, contents, file);
+        assertPart(fieldName, contents, file, encoding);
         return file;
     }
 
     static Part assertFieldPart(MultipartFormParts form, String fieldName, String fieldValue) throws IOException {
+        return assertFieldPart(form, fieldName, fieldValue, StandardCharsets.UTF_8);
+    }
+
+    static Part assertFieldPart(MultipartFormParts form, String fieldName, String fieldValue, Charset encoding) throws IOException {
         assertThereAreMoreParts(form);
         Part field = form.next();
         assertPartIsFormField(field);
-        assertPart(fieldName, fieldValue, field);
+        assertPart(fieldName, fieldValue, field, encoding);
         return field;
     }
 
-    static void assertPart(String fieldName, String fieldValue, Part part) throws IOException {
+    static void assertPart(String fieldName, String fieldValue, Part part, Charset encoding) throws IOException {
         assertThat("field name", part.getFieldName(), equalTo(fieldName));
-        assertThat("contents", part.getContentsAsString(), equalTo(fieldValue));
+        assertThat("contents", part.getContentsAsString(4096, encoding), equalTo(fieldValue));
     }
 
     static void assertThereAreNoMoreParts(MultipartFormParts form) {

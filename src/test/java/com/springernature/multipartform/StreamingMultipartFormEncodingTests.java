@@ -13,39 +13,39 @@ public class StreamingMultipartFormEncodingTests {
     @Test
     public void uploadUTF8() throws Exception {
         MultipartFormParts form = constructForm(StandardCharsets.UTF_8);
-        testForm(form, "\u00E9", "\uD83D\uDCA9");
+        testForm(form, "\u00E9", "\uD83D\uDCA9", StandardCharsets.UTF_8);
     }
 
     @Test
     public void uploadISO_8859_1() throws Exception {
         MultipartFormParts form = constructForm(StandardCharsets.ISO_8859_1);
-        testForm(form, "\u00E9", "?");
+        testForm(form, "\u00E9", "?", StandardCharsets.ISO_8859_1);
     }
 
     @Test
     public void uploadUTF_16BE() throws Exception {
         MultipartFormParts form = constructForm(StandardCharsets.UTF_16BE);
-        testForm(form, "\u00E9", "\uD83D\uDCA9");
+        testForm(form, "\u00E9", "\uD83D\uDCA9", StandardCharsets.UTF_16BE);
     }
 
     @Test
     public void uploadUTF_16LE() throws Exception {
         MultipartFormParts form = constructForm(StandardCharsets.UTF_16LE);
-        testForm(form, "\u00E9", "\uD83D\uDCA9");
+        testForm(form, "\u00E9", "\uD83D\uDCA9", StandardCharsets.UTF_16LE);
     }
 
     @Test
     public void uploadUS_ASCII() throws Exception {
         MultipartFormParts form = constructForm(StandardCharsets.US_ASCII);
-        testForm(form, "?", "?");
+        testForm(form, "?", "?", StandardCharsets.US_ASCII);
     }
 
-    private void testForm(MultipartFormParts form, String simpleChar, String complexChar) throws IOException {
-        assertFilePart(form, "file", "foo.tab" + complexChar, "text/whatever" + simpleChar + complexChar, "This is the content of the file" + simpleChar + complexChar);
-        assertFieldPart(form, "field" + complexChar, "fieldValue" + simpleChar + complexChar);
-        assertFieldPart(form, "multi", "value1" + simpleChar);
-        assertFilePart(form, "anotherFile", "BAR.tab", "text/something" + simpleChar, "This is another file" + simpleChar);
-        assertFieldPart(form, "multi", "value2" + simpleChar);
+    private void testForm(MultipartFormParts form, String simpleChar, String complexChar, Charset encoding) throws IOException {
+        assertFilePart(form, "file", "foo.tab" + complexChar, "text/whatever" + simpleChar + complexChar, "This is the content of the file" + simpleChar + complexChar, encoding);
+        assertFieldPart(form, "field" + complexChar, "fieldValue" + simpleChar + complexChar, encoding);
+        assertFieldPart(form, "multi", "value1" + simpleChar, encoding);
+        assertFilePart(form, "anotherFile", "BAR.tab", "text/something" + simpleChar, "This is another file" + simpleChar, encoding);
+        assertFieldPart(form, "multi", "value2" + simpleChar, encoding);
 
         assertThereAreNoMoreParts(form);
     }
