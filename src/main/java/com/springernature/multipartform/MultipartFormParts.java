@@ -6,6 +6,7 @@ import com.springernature.multipartform.exceptions.TokenNotFoundException;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -59,6 +60,7 @@ public class MultipartFormParts implements Iterator<Part> {
     protected static final byte[] BOUNDARY_PREFIX = {CR, LF, DASH, DASH};
 
     private final TokenBoundedInputStream buf;
+    private final Charset encoding;
     private Part currentPart;
     private boolean isEndOfStream;
     private boolean nextIsKnown;
@@ -70,16 +72,17 @@ public class MultipartFormParts implements Iterator<Part> {
     private byte[] oldBoundary = null;
     private byte[] oldBoundaryWithPrefix;
 
-    public static MultipartFormParts parse(String boundary, InputStream inputStream) throws IOException {
-        return new MultipartFormParts(boundary, inputStream, DEFAULT_BUFSIZE);
+    public static MultipartFormParts parse(byte[] boundary, InputStream inputStream, Charset encoding) throws IOException {
+        return new MultipartFormParts(boundary, inputStream, DEFAULT_BUFSIZE, encoding);
     }
 
-    public MultipartFormParts(String boundary, InputStream inputStream, int bufSize) throws IOException {
-        this.boundary = boundary.getBytes();
+    public MultipartFormParts(byte[] boundary, InputStream inputStream, int bufSize, Charset encoding) throws IOException {
+        this.boundary = boundary;
+        this.encoding = encoding;
         if (bufSize < this.boundary.length + FIELD_SEPARATOR.length) {
             throw new IllegalArgumentException("bufSize must be bigger than the boundary");
         }
-        buf = new TokenBoundedInputStream(inputStream, bufSize);
+        buf = new TokenBoundedInputStream(inputStream, bufSize, encoding);
 
         this.boundaryWithPrefix = addPrefixToBoundary(this.boundary);
 
@@ -98,7 +101,7 @@ public class MultipartFormParts implements Iterator<Part> {
 
         if (!buf.dropFromStreamUntilMatched(boundary)) {
             // what about when this isn't at the beginning of a line...
-            throw new TokenNotFoundException("couldn't find boundary <<" + new String(boundary) + ">>");
+            throw new TokenNotFoundException("couldn't find boundary <<" + new String(boundary, encoding) + ">>");
         }
         state = MultipartFormStreamState.boundaryFound;
         if (buf.matchInStream(STREAM_TERMINATOR) && buf.matchInStream(FIELD_SEPARATOR)) {
@@ -194,7 +197,7 @@ public class MultipartFormParts implements Iterator<Part> {
 
             oldBoundary = boundary;
             oldBoundaryWithPrefix = boundaryWithPrefix;
-            boundary = ("--" + trim(contentTypeParams.get("boundary"))).getBytes();
+            boundary = (new String(STREAM_TERMINATOR, encoding) + trim(contentTypeParams.get("boundary"))).getBytes(encoding);
             boundaryWithPrefix = addPrefixToBoundary(this.boundary);
 
             state = MultipartFormStreamState.findBoundary;
@@ -209,7 +212,7 @@ public class MultipartFormParts implements Iterator<Part> {
                 !contentDisposition.containsKey("filename"),
                 contentType,
                 trim(filename == null ? "" : filename),
-                new BoundedInputStream(), headers);
+                new BoundedInputStream(), headers, encoding);
         }
     }
 

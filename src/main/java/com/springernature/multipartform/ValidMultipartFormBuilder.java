@@ -3,22 +3,41 @@ package com.springernature.multipartform;
 import com.googlecode.totallylazy.Pair;
 import com.googlecode.totallylazy.Sequence;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.Deque;
 
 import static com.googlecode.totallylazy.Pair.pair;
 import static com.googlecode.totallylazy.Sequences.sequence;
 import static com.springernature.multipartform.MultipartFormParts.FIELD_SEPARATOR;
+import static com.springernature.multipartform.MultipartFormParts.STREAM_TERMINATOR;
 
 public class ValidMultipartFormBuilder {
-    public static final String CR_LF = new String(FIELD_SEPARATOR);
-    private final Deque<String> boundary = new ArrayDeque<>();
-    private final StringBuilder builder = new StringBuilder();
+    private final Deque<byte[]> boundary = new ArrayDeque<>();
+    private final ByteArrayOutputStream builder = new ByteArrayOutputStream();
+    private final Charset encoding;
 
-    public ValidMultipartFormBuilder(String boundary) {this.boundary.push(boundary);}
+    public ValidMultipartFormBuilder(String boundary) {
+        this(boundary.getBytes(StandardCharsets.UTF_8), StandardCharsets.UTF_8);
+    }
 
-    public String build() {
-        return builder.toString() + boundary.peek() + "--" + CR_LF;
+    public ValidMultipartFormBuilder(byte[] boundary, Charset encoding) {
+        this.encoding = encoding;
+        this.boundary.push(boundary);
+    }
+
+    public byte[] build() {
+        try {
+            builder.write(boundary.peek());
+            builder.write(STREAM_TERMINATOR);
+            builder.write(FIELD_SEPARATOR);
+            return builder.toByteArray();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public ValidMultipartFormBuilder field(String name, String value) {
@@ -29,24 +48,35 @@ public class ValidMultipartFormBuilder {
     }
 
     private void appendHeader(final String headerName, Sequence<Pair<String, String>> pairs) {
-        builder.append(headerName).append(": ")
-            .append(pairs.map((pair) -> {
+        try {
+            String headers = headerName + ": " + pairs.map((pair) -> {
                 if (pair.getValue() != null) {
                     return pair.getKey() + "=\"" + pair.getValue() + "\"";
                 }
                 return pair.getKey();
-            }).toString("; "))
-            .append(CR_LF);
+            }).toString("; ");
+
+            builder.write(headers.getBytes(encoding));
+            builder.write(FIELD_SEPARATOR);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public ValidMultipartFormBuilder part(String contents, Pair<String, Sequence<Pair<String, String>>>... headers) {
-        builder.append(boundary.peek()).append(CR_LF);
-        sequence(headers).forEach(header -> {
-            appendHeader(header.getKey(), header.getValue());
-        });
-        builder.append(CR_LF)
-            .append(contents).append(CR_LF);
-        return this;
+        try {
+            builder.write(boundary.peek());
+            builder.write(FIELD_SEPARATOR);
+            sequence(headers).forEach(header -> {
+                appendHeader(header.getKey(), header.getValue());
+            });
+            builder.write(FIELD_SEPARATOR);
+            builder.write(contents.getBytes(encoding));
+            builder.write(FIELD_SEPARATOR);
+            return this;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public ValidMultipartFormBuilder file(String fieldName, String filename, String contentType, String contents) {
@@ -58,17 +88,29 @@ public class ValidMultipartFormBuilder {
     }
 
     public ValidMultipartFormBuilder rawPart(String raw) {
-        builder.append(boundary.peek()).append(CR_LF).append(raw).append(CR_LF);
-        return this;
+        try {
+            builder.write(boundary.peek());
+            builder.write(FIELD_SEPARATOR);
+            builder.write(raw.getBytes(encoding));
+            builder.write(FIELD_SEPARATOR);
+            return this;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public ValidMultipartFormBuilder startMultipart(String multipartFieldName, String subpartBoundary) {
-        builder.append(boundary.peek()).append(CR_LF);
-        appendHeader("Content-Disposition", sequence(pair("form-data", null), pair("name", multipartFieldName)));
-        appendHeader("Content-Type", sequence(pair("multipart/mixed", null), pair("boundary", subpartBoundary)));
-        builder.append(CR_LF);
-        boundary.push("--" + subpartBoundary);
-        return this;
+        try {
+            builder.write(boundary.peek());
+            builder.write(FIELD_SEPARATOR);
+            appendHeader("Content-Disposition", sequence(pair("form-data", null), pair("name", multipartFieldName)));
+            appendHeader("Content-Type", sequence(pair("multipart/mixed", null), pair("boundary", subpartBoundary)));
+            builder.write(FIELD_SEPARATOR);
+            boundary.push((new String(STREAM_TERMINATOR, encoding) + subpartBoundary).getBytes(encoding));
+            return this;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public ValidMultipartFormBuilder attachment(String fileName, String contentType, String contents) {
@@ -80,7 +122,13 @@ public class ValidMultipartFormBuilder {
     }
 
     public ValidMultipartFormBuilder endMultipart() {
-        builder.append(boundary.pop()).append("--" + CR_LF);
-        return this;
+        try {
+            builder.write(boundary.pop());
+            builder.write(STREAM_TERMINATOR);
+            builder.write(FIELD_SEPARATOR);
+            return this;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

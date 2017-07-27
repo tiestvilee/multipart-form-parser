@@ -3,6 +3,7 @@ package com.springernature.multipartform;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.util.Map;
 
 public class Part  extends InputStream implements Closeable {
@@ -12,14 +13,16 @@ public class Part  extends InputStream implements Closeable {
     private final String fileName;
     private final InputStream inputStream;
     private final Map<String, String> headers;
+    private final Charset encoding;
 
-    public Part(String fieldName, boolean formField, String contentType, String fileName, InputStream inputStream, Map<String, String> headers) {
+    public Part(String fieldName, boolean formField, String contentType, String fileName, InputStream inputStream, Map<String, String> headers, Charset encoding) {
         this.fieldName = fieldName;
         this.formField = formField;
         this.contentType = contentType;
         this.fileName = fileName;
         this.inputStream = inputStream;
         this.headers = headers;
+        this.encoding = encoding;
     }
 
     @Override public int read() throws IOException {
@@ -66,7 +69,7 @@ public class Part  extends InputStream implements Closeable {
             }
             length += count;
         }
-        return new String(bytes, 0, length);
+        return new String(bytes, 0, length, encoding);
     }
 
     public Map<String, String> getHeaders() {

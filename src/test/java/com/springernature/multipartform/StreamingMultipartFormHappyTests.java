@@ -135,54 +135,6 @@ public class StreamingMultipartFormHappyTests {
         assertThereAreNoMoreParts(form);
     }
 
-
-    /*
-    @Test
-    public void testFILEUPLOAD62() throws Exception {
-        final String contentType = "multipart/form-data; boundary=AaB03x";
-        final String request =
-            "--AaB03x\r\n" +
-            "content-disposition: form-data; name=\"field1\"\r\n" +
-            "\r\n" +
-            "Joe Blow\r\n" +
-            "--AaB03x\r\n" +
-            "content-disposition: form-data; name=\"pics\"\r\n" +
-            "Content-type: multipart/mixed; boundary=BbC04y\r\n" +
-            "\r\n" +
-            "--BbC04y\r\n" +
-            "Content-disposition: attachment; filename=\"file1.txt\"\r\n" +
-            "Content-Type: text/plain\r\n" +
-            "\r\n" +
-            "... contents of file1.txt ...\r\n" +
-            "--BbC04y\r\n" +
-            "Content-disposition: attachment; filename=\"file2.gif\"\r\n" +
-            "Content-type: image/gif\r\n" +
-            "Content-Transfer-Encoding: binary\r\n" +
-            "\r\n" +
-            "...contents of file2.gif...\r\n" +
-            "--BbC04y--\r\n" +
-            "--AaB03x--";
-        List<FileItem> fileItems = Util.parseUpload(upload, request.getBytes("US-ASCII"), contentType);
-        assertEquals(3, fileItems.size());
-        FileItem item0 = fileItems.get(0);
-        assertEquals("field1", item0.getFieldName());
-        assertNull(item0.getName());
-        assertEquals("Joe Blow", new String(item0.get()));
-        FileItem item1 = fileItems.get(1);
-        assertEquals("pics", item1.getFieldName());
-        assertEquals("file1.txt", item1.getName());
-        assertEquals("... contents of file1.txt ...", new String(item1.get()));
-        FileItem item2 = fileItems.get(2);
-        assertEquals("pics", item2.getFieldName());
-        assertEquals("file2.gif", item2.getName());
-        assertEquals("...contents of file2.gif...", new String(item2.get()));
-    }
-     */
-    @Test
-    public void uploadMultipartFormWithSubParts() throws Exception {
-
-    }
-
     @Test
     public void uploadFieldsWithMultilineHeaders() throws Exception {
         String boundary = "-----1234";
@@ -308,12 +260,16 @@ public class StreamingMultipartFormHappyTests {
         assertThat(file2.getContentsAsString(), equalTo("Different file contents here"));
     }
 
-    private MultipartFormParts getMultipartFormParts(String boundary, String multipartFormContents) throws IOException {
-        InputStream multipartFormContentsStream = new ByteArrayInputStream(multipartFormContents.getBytes(Charset.forName("UTF-8")));
-        return MultipartFormParts.parse(boundary, multipartFormContentsStream);
+    static MultipartFormParts getMultipartFormParts(String boundary, byte[] multipartFormContents) throws IOException {
+        return getMultipartFormParts(boundary.getBytes(Charset.forName("UTF-8")), multipartFormContents, Charset.forName("UTF-8"));
     }
 
-    private Part assertFilePart(MultipartFormParts form, String fieldName, String fileName, String contentType, String contents) throws IOException {
+    static MultipartFormParts getMultipartFormParts(byte[] boundary, byte[] multipartFormContents, Charset encoding) throws IOException {
+        InputStream multipartFormContentsStream = new ByteArrayInputStream(multipartFormContents);
+        return MultipartFormParts.parse(boundary, multipartFormContentsStream, encoding);
+    }
+
+    static Part assertFilePart(MultipartFormParts form, String fieldName, String fileName, String contentType, String contents) throws IOException {
         assertThereAreMoreParts(form);
         Part file = form.next();
         assertThat("file name", file.getFileName(), equalTo(fileName));
@@ -323,7 +279,7 @@ public class StreamingMultipartFormHappyTests {
         return file;
     }
 
-    private Part assertFieldPart(MultipartFormParts form, String fieldName, String fieldValue) throws IOException {
+    static Part assertFieldPart(MultipartFormParts form, String fieldName, String fieldValue) throws IOException {
         assertThereAreMoreParts(form);
         Part field = form.next();
         assertPartIsFormField(field);
@@ -331,24 +287,24 @@ public class StreamingMultipartFormHappyTests {
         return field;
     }
 
-    private void assertPart(String fieldName, String fieldValue, Part part) throws IOException {
+    static void assertPart(String fieldName, String fieldValue, Part part) throws IOException {
         assertThat("field name", part.getFieldName(), equalTo(fieldName));
         assertThat("contents", part.getContentsAsString(), equalTo(fieldValue));
     }
 
-    private void assertThereAreNoMoreParts(MultipartFormParts form) {
+    static void assertThereAreNoMoreParts(MultipartFormParts form) {
         assertFalse("Too many parts", form.hasNext());
     }
 
-    private void assertThereAreMoreParts(MultipartFormParts form) {
+    static void assertThereAreMoreParts(MultipartFormParts form) {
         assertTrue("Not enough parts", form.hasNext());
     }
 
-    private void assertPartIsFormField(Part field) {
+    static void assertPartIsFormField(Part field) {
         assertTrue("the part is a form field", field.isFormField());
     }
 
-    private void assertPartIsNotField(Part file) {
+    static void assertPartIsNotField(Part file) {
         assertFalse("the part is not a form field", file.isFormField());
     }
 }

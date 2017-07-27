@@ -5,11 +5,14 @@ import com.springernature.multipartform.exceptions.TokenNotFoundException;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 
 public class TokenBoundedInputStream {
     private final BufferedInputStream inputStream;
+    private final Charset encoding;
 
-    public TokenBoundedInputStream(InputStream inputStream, int bufSize) throws IOException {
+    public TokenBoundedInputStream(InputStream inputStream, int bufSize, Charset encoding) throws IOException {
+        this.encoding = encoding;
         this.inputStream = new BufferedInputStream(inputStream, bufSize);
     }
 
@@ -52,21 +55,21 @@ public class TokenBoundedInputStream {
             byte originalB = (byte) b;
             inputStream.mark(endOfToken.length);
             if (matchToken(endOfToken, b) == endOfToken.length) {
-                return new String(buffer, 0, bufferIndex);
+                return new String(buffer, 0, bufferIndex, encoding);
             }
             buffer[bufferIndex++] = originalB;
             inputStream.reset();
         }
 
         throw new TokenNotFoundException(
-            "Didn't find Token <<" + new String(endOfToken) + ">>. " +
+            "Didn't find Token <<" + new String(endOfToken, encoding) + ">>. " +
                 "Last " + endOfToken.length + " bytes read were " +
-                "<<" + new String(buffer, bufferIndex - endOfToken.length, endOfToken.length) + ">>");
+                "<<" + new String(buffer, bufferIndex - endOfToken.length, endOfToken.length, encoding) + ">>");
     }
 
     private int matchToken(byte[] endOfToken, int b) throws IOException {
         int eotIndex = 0;
-        while (b > -1 && b == endOfToken[eotIndex] && (++eotIndex) < endOfToken.length) {
+        while (b > -1 && ((byte) b == endOfToken[eotIndex]) && (++eotIndex) < endOfToken.length) {
             b = inputStream.read();
         }
         return eotIndex;
@@ -103,7 +106,7 @@ public class TokenBoundedInputStream {
         inputStream.mark(endOfToken.length);
         int b = inputStream.read();
         int eotIndex = 0;
-        while (eotIndex < endOfToken.length && b == endOfToken[eotIndex]) { b = inputStream.read(); eotIndex++;}
+        while (eotIndex < endOfToken.length && ((byte) b == endOfToken[eotIndex])) { b = inputStream.read(); eotIndex++;}
         if (eotIndex == endOfToken.length) {
             inputStream.reset();
             return -1;
@@ -113,6 +116,6 @@ public class TokenBoundedInputStream {
     }
 
     public byte[] lastBytes(int numberOfBytes) {
-        return "Sorry, not available".getBytes();
+        return "Sorry, not available".getBytes(encoding);
     }
 }

@@ -1,0 +1,65 @@
+package com.springernature.multipartform;
+
+import org.junit.Test;
+
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+
+import static com.springernature.multipartform.StreamingMultipartFormHappyTests.*;
+
+public class StreamingMultipartFormEncodingTests {
+
+    @Test
+    public void uploadUTF8() throws Exception {
+        MultipartFormParts form = constructForm(StandardCharsets.UTF_8);
+        testForm(form, "\u00E9", "\uD83D\uDCA9");
+    }
+
+    @Test
+    public void uploadISO_8859_1() throws Exception {
+        MultipartFormParts form = constructForm(StandardCharsets.ISO_8859_1);
+        testForm(form, "\u00E9", "?");
+    }
+
+    @Test
+    public void uploadUTF_16BE() throws Exception {
+        MultipartFormParts form = constructForm(StandardCharsets.UTF_16BE);
+        testForm(form, "\u00E9", "\uD83D\uDCA9");
+    }
+
+    @Test
+    public void uploadUTF_16LE() throws Exception {
+        MultipartFormParts form = constructForm(StandardCharsets.UTF_16LE);
+        testForm(form, "\u00E9", "\uD83D\uDCA9");
+    }
+
+    @Test
+    public void uploadUS_ASCII() throws Exception {
+        MultipartFormParts form = constructForm(StandardCharsets.US_ASCII);
+        testForm(form, "?", "?");
+    }
+
+    private void testForm(MultipartFormParts form, String simpleChar, String complexChar) throws IOException {
+        assertFilePart(form, "file", "foo.tab" + complexChar, "text/whatever" + simpleChar + complexChar, "This is the content of the file" + simpleChar + complexChar);
+        assertFieldPart(form, "field" + complexChar, "fieldValue" + simpleChar + complexChar);
+        assertFieldPart(form, "multi", "value1" + simpleChar);
+        assertFilePart(form, "anotherFile", "BAR.tab", "text/something" + simpleChar, "This is another file" + simpleChar);
+        assertFieldPart(form, "multi", "value2" + simpleChar);
+
+        assertThereAreNoMoreParts(form);
+    }
+
+    private MultipartFormParts constructForm(Charset encoding) throws IOException {
+        String boundary = "-----\u00E91234\uD83D\uDCA9";
+        byte[] boundaryBytes = boundary.getBytes(encoding);
+        return getMultipartFormParts(boundaryBytes,
+            new ValidMultipartFormBuilder(boundaryBytes, encoding)
+                .file("file", "foo.tab\uD83D\uDCA9", "text/whatever\u00E9\uD83D\uDCA9", "This is the content of the file\u00E9\uD83D\uDCA9")
+                .field("field\uD83D\uDCA9", "fieldValue\u00E9\uD83D\uDCA9")
+                .field("multi", "value1\u00E9")
+                .file("anotherFile", "BAR.tab", "text/something\u00E9", "This is another file\u00E9")
+                .field("multi", "value2\u00E9")
+                .build(), encoding);
+    }
+}
