@@ -64,13 +64,25 @@ public class TokenBoundedInputStream {
         throw new TokenNotFoundException(
             "Didn't find Token <<" + new String(endOfToken, encoding) + ">>. " +
                 "Last " + endOfToken.length + " bytes read were " +
-                "<<" + new String(buffer, bufferIndex - endOfToken.length, endOfToken.length, encoding) + ">>");
+                "<<" + getBytesRead(endOfToken, buffer, bufferIndex) + ">>");
     }
 
-    private int matchToken(byte[] endOfToken, int b) throws IOException {
+    private String getBytesRead(byte[] endOfToken, byte[] buffer, int bufferIndex) {
+        int index, length;
+        if (bufferIndex - endOfToken.length > 0) {
+            index = bufferIndex - endOfToken.length;
+            length = endOfToken.length;
+        } else {
+            index = 0;
+            length = bufferIndex;
+        }
+        return new String(buffer, index, length, encoding);
+    }
+
+    private int matchToken(byte[] token, int initialCharacter) throws IOException {
         int eotIndex = 0;
-        while (b > -1 && ((byte) b == endOfToken[eotIndex]) && (++eotIndex) < endOfToken.length) {
-            b = inputStream.read();
+        while (initialCharacter > -1 && ((byte) initialCharacter == token[eotIndex]) && (++eotIndex) < token.length) {
+            initialCharacter = inputStream.read();
         }
         return eotIndex;
     }
