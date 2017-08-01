@@ -33,9 +33,9 @@ public class StreamingMultipartFormParts implements Iterable<Part> {
     public static final byte DASH = 0x2D;
 
     /**
-     * The maximum length of each header line
+     * The maximum length of all headers
      */
-    public static final int HEADER_LINE_SIZE_MAX = 4096;
+    public static final int HEADER_SIZE_MAX = 10 * 1024;
 
     /**
      * A byte sequence that that follows a delimiter that will be
@@ -192,8 +192,9 @@ public class StreamingMultipartFormParts implements Iterable<Part> {
 
         Map<String, String> result = new HashMap<>();
         String previousHeaderName = null;
-        while (true) {
-            String header = buf.readStringFromStreamUntilMatched(FIELD_SEPARATOR, HEADER_LINE_SIZE_MAX);
+        long maxByteIndexForHeader = buf.currentByteIndex() + HEADER_SIZE_MAX;
+        while (buf.currentByteIndex() < maxByteIndexForHeader) {
+            String header = buf.readStringFromStreamUntilMatched(FIELD_SEPARATOR, (int) (maxByteIndexForHeader - buf.currentByteIndex()));
             if (header.equals("")) {
                 state = MultipartFormStreamState.contents;
                 return result;
@@ -210,6 +211,7 @@ public class StreamingMultipartFormParts implements Iterable<Part> {
                 }
             }
         }
+        throw new TokenNotFoundException("Didn't find end of Header section within " + HEADER_SIZE_MAX + " bytes");
     }
 
     public class StreamingMulipartFormPartIterator implements Iterator<Part> {

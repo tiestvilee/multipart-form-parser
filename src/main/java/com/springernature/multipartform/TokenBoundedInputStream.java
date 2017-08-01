@@ -10,10 +10,13 @@ import java.nio.charset.Charset;
 public class TokenBoundedInputStream {
     private final BufferedInputStream inputStream;
     private final Charset encoding;
+    private long currentByteIndex;
+    private long currentMark;
 
     public TokenBoundedInputStream(InputStream inputStream, int bufSize, Charset encoding) throws IOException {
         this.encoding = encoding;
         this.inputStream = new BufferedInputStream(inputStream, bufSize);
+        currentByteIndex = 0;
     }
 
     /**
@@ -26,12 +29,12 @@ public class TokenBoundedInputStream {
     public boolean dropFromStreamUntilMatched(byte[] endOfToken) throws IOException {
         // very inefficient search!
         int b;
-        while ((b = inputStream.read()) > -1) {
-            inputStream.mark(endOfToken.length);
+        while ((b = readFromStream()) > -1) {
+            markStream(endOfToken);
             if (matchToken(endOfToken, b) == endOfToken.length) {
                 return true;
             }
-            inputStream.reset();
+            resetToMarkInStream();
         }
         return false;
     }
@@ -51,14 +54,14 @@ public class TokenBoundedInputStream {
         int bufferIndex = 0;
 
         int b;
-        while ((b = inputStream.read()) > -1 && bufferIndex < maxStringSizeInBytes) {
+        while ((b = readFromStream()) > -1 && bufferIndex < maxStringSizeInBytes) {
             byte originalB = (byte) b;
-            inputStream.mark(endOfToken.length);
+            markStream(endOfToken);
             if (matchToken(endOfToken, b) == endOfToken.length) {
                 return new String(buffer, 0, bufferIndex, encoding);
             }
             buffer[bufferIndex++] = originalB;
-            inputStream.reset();
+            resetToMarkInStream();
         }
 
         if (bufferIndex >= maxStringSizeInBytes) {
@@ -87,7 +90,7 @@ public class TokenBoundedInputStream {
     private int matchToken(byte[] token, int initialCharacter) throws IOException {
         int eotIndex = 0;
         while (initialCharacter > -1 && ((byte) initialCharacter == token[eotIndex]) && (++eotIndex) < token.length) {
-            initialCharacter = inputStream.read();
+            initialCharacter = readFromStream();
         }
         return eotIndex;
     }
@@ -101,13 +104,13 @@ public class TokenBoundedInputStream {
      * false if it isn't found (and the stream is unchanged)
      */
     public boolean matchInStream(byte[] token) throws IOException {
-        inputStream.mark(token.length);
+        markStream(token);
 
-        if (matchToken(token, inputStream.read()) == token.length) {
+        if (matchToken(token, readFromStream()) == token.length) {
             return true;
         }
 
-        inputStream.reset();
+        resetToMarkInStream();
         return false;
     }
 
@@ -120,18 +123,38 @@ public class TokenBoundedInputStream {
      * when it is matched.
      */
     public int readByteFromStreamUntilMatched(byte[] endOfToken) throws IOException {
-        inputStream.mark(endOfToken.length);
-        int b = inputStream.read();
+        markStream(endOfToken);
+        int b = readFromStream();
         int eotIndex = 0;
         while (eotIndex < endOfToken.length && ((byte) b == endOfToken[eotIndex])) {
-            b = inputStream.read();
+            b = readFromStream();
             eotIndex++;
         }
         if (eotIndex == endOfToken.length) {
-            inputStream.reset();
+            resetToMarkInStream();
             return -1;
         }
+        resetToMarkInStream();
+        return readFromStream();
+    }
+
+
+    private void resetToMarkInStream() throws IOException {
+        currentByteIndex = currentMark;
         inputStream.reset();
+    }
+
+    private void markStream(byte[] endOfToken) {
+        currentMark = currentByteIndex;
+        inputStream.mark(endOfToken.length);
+    }
+
+    private int readFromStream() throws IOException {
+        currentByteIndex++;
         return inputStream.read();
+    }
+
+    public long currentByteIndex() {
+        return currentByteIndex;
     }
 }

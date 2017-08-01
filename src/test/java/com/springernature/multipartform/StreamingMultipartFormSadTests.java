@@ -12,6 +12,7 @@ import static com.googlecode.totallylazy.Pair.pair;
 import static com.googlecode.totallylazy.Sequences.sequence;
 import static com.springernature.multipartform.StreamingMultipartFormHappyTests.CR_LF;
 import static com.springernature.multipartform.StreamingMultipartFormHappyTests.getMultipartFormParts;
+import static com.springernature.multipartform.StreamingMultipartFormParts.HEADER_SIZE_MAX;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -200,12 +201,37 @@ public class StreamingMultipartFormSadTests {
     public void failsIfHeadingTooLong() throws Exception {
         String boundary = "-----2345";
 
-        char[] chars = new char[4096];
+        char[] chars = new char[HEADER_SIZE_MAX];
         Arrays.fill(chars, 'x');
         Iterator<Part> form = getMultipartFormParts(boundary, new ValidMultipartFormBuilder(boundary)
             .file("aFile", new String(chars), "application/octet-stream", "File contents here").build());
 
-        assertParseErrorWrapsTokenNotFound(form, "Didn't find end of Token <<\r\n>> within 4096 bytes");
+        assertParseErrorWrapsTokenNotFound(form, "Didn't find end of Token <<\r\n>> within 10240 bytes");
+    }
+
+    @Test
+    public void failsIfTooManyHeadings() throws Exception {
+        String boundary = "-----2345";
+
+        char[] chars = new char[1024];
+        Arrays.fill(chars, 'x');
+        Iterator<Part> form = getMultipartFormParts(boundary, new ValidMultipartFormBuilder(boundary)
+            .part("some contents",
+                pair("Content-Disposition", sequence(pair("form-data", null), pair("name", "fieldName"), pair("filename", "filename"))),
+                pair("Content-Type", sequence(pair("text/plain", null))),
+                pair("extra-1", sequence(pair(new String(chars), null))),
+                pair("extra-2", sequence(pair(new String(chars), null))),
+                pair("extra-3", sequence(pair(new String(chars), null))),
+                pair("extra-4", sequence(pair(new String(chars), null))),
+                pair("extra-5", sequence(pair(new String(chars), null))),
+                pair("extra-6", sequence(pair(new String(chars), null))),
+                pair("extra-7", sequence(pair(new String(chars), null))),
+                pair("extra-8", sequence(pair(new String(chars), null))),
+                pair("extra-9", sequence(pair(new String(chars), null))),
+                pair("extra-10", sequence(pair(new String(chars, 0, 816), null))) // header section exactly 10240 bytes big!
+            ).build());
+
+        assertParseErrorWrapsTokenNotFound(form, "Didn't find end of Token <<\r\n>> within 820 bytes");
     }
 
     private void assertParseErrorWrapsTokenNotFound(Iterator<Part> form, String errorMessage) {
