@@ -231,7 +231,7 @@ public class StreamingMultipartFormSadTests {
                 pair("extra-10", sequence(pair(new String(chars, 0, 816), null))) // header section exactly 10240 bytes big!
             ).build());
 
-        assertParseErrorWrapsTokenNotFound(form, "Didn't find end of Token <<\r\n>> within 820 bytes");
+        assertParseErrorWrapsTokenNotFound(form, "Didn't find end of Header section within 10240 bytes");
     }
 
     private void assertParseErrorWrapsTokenNotFound(Iterator<Part> form, String errorMessage) {
