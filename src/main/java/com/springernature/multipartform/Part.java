@@ -5,15 +5,16 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.Map;
 
 public class Part  extends InputStream implements Closeable {
-    private final String fieldName;
-    private final boolean formField;
-    private final String contentType;
-    private final String fileName;
-    private final InputStream inputStream;
-    private final Map<String, String> headers;
+    public final String fieldName;
+    public final boolean formField;
+    public final String contentType;
+    public final String fileName;
+    public final InputStream inputStream;
+    public final Map<String, String> headers;
 
     public Part(String fieldName, boolean formField, String contentType, String fileName, InputStream inputStream, Map<String, String> headers) {
         this.fieldName = fieldName;
@@ -21,7 +22,7 @@ public class Part  extends InputStream implements Closeable {
         this.contentType = contentType;
         this.fileName = fileName;
         this.inputStream = inputStream;
-        this.headers = headers;
+        this.headers = Collections.unmodifiableMap(headers);
     }
 
     @Override public int read() throws IOException {
@@ -74,4 +75,9 @@ public class Part  extends InputStream implements Closeable {
     public Map<String, String> getHeaders() {
         return headers;
     }
+
+    public InMemoryPart realise(Charset encoding, int maxPartContentSize) throws IOException {
+        return new InMemoryPart(this, this.getContentsAsString(maxPartContentSize, encoding));
+    }
+
 }
