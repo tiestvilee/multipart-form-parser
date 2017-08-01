@@ -12,8 +12,8 @@ import java.util.Deque;
 
 import static com.googlecode.totallylazy.Pair.pair;
 import static com.googlecode.totallylazy.Sequences.sequence;
-import static com.springernature.multipartform.MultipartFormParts.FIELD_SEPARATOR;
-import static com.springernature.multipartform.MultipartFormParts.STREAM_TERMINATOR;
+import static com.springernature.multipartform.StreamingMultipartFormParts.FIELD_SEPARATOR;
+import static com.springernature.multipartform.StreamingMultipartFormParts.STREAM_TERMINATOR;
 
 public class ValidMultipartFormBuilder {
     private final Deque<byte[]> boundary = new ArrayDeque<>();

@@ -12,35 +12,35 @@ public class StreamingMultipartFormEncodingTests {
 
     @Test
     public void uploadUTF8() throws Exception {
-        MultipartFormParts form = constructForm(StandardCharsets.UTF_8);
+        StreamingMultipartFormParts form = constructForm(StandardCharsets.UTF_8);
         testForm(form, "\u00E9", "\uD83D\uDCA9", StandardCharsets.UTF_8);
     }
 
     @Test
     public void uploadISO_8859_1() throws Exception {
-        MultipartFormParts form = constructForm(StandardCharsets.ISO_8859_1);
+        StreamingMultipartFormParts form = constructForm(StandardCharsets.ISO_8859_1);
         testForm(form, "\u00E9", "?", StandardCharsets.ISO_8859_1);
     }
 
     @Test
     public void uploadUTF_16BE() throws Exception {
-        MultipartFormParts form = constructForm(StandardCharsets.UTF_16BE);
+        StreamingMultipartFormParts form = constructForm(StandardCharsets.UTF_16BE);
         testForm(form, "\u00E9", "\uD83D\uDCA9", StandardCharsets.UTF_16BE);
     }
 
     @Test
     public void uploadUTF_16LE() throws Exception {
-        MultipartFormParts form = constructForm(StandardCharsets.UTF_16LE);
+        StreamingMultipartFormParts form = constructForm(StandardCharsets.UTF_16LE);
         testForm(form, "\u00E9", "\uD83D\uDCA9", StandardCharsets.UTF_16LE);
     }
 
     @Test
     public void uploadUS_ASCII() throws Exception {
-        MultipartFormParts form = constructForm(StandardCharsets.US_ASCII);
+        StreamingMultipartFormParts form = constructForm(StandardCharsets.US_ASCII);
         testForm(form, "?", "?", StandardCharsets.US_ASCII);
     }
 
-    private void testForm(MultipartFormParts form, String simpleChar, String complexChar, Charset encoding) throws IOException {
+    private void testForm(StreamingMultipartFormParts form, String simpleChar, String complexChar, Charset encoding) throws IOException {
         assertFilePart(form, "file", "foo.tab" + complexChar, "text/whatever" + simpleChar + complexChar, "This is the content of the file" + simpleChar + complexChar, encoding);
         assertFieldPart(form, "field" + complexChar, "fieldValue" + simpleChar + complexChar, encoding);
         assertFieldPart(form, "multi", "value1" + simpleChar, encoding);
@@ -50,7 +50,7 @@ public class StreamingMultipartFormEncodingTests {
         assertThereAreNoMoreParts(form);
     }
 
-    private MultipartFormParts constructForm(Charset encoding) throws IOException {
+    private StreamingMultipartFormParts constructForm(Charset encoding) throws IOException {
         String boundary = "-----\u00E91234\uD83D\uDCA9";
         byte[] boundaryBytes = boundary.getBytes(encoding);
         return getMultipartFormParts(boundaryBytes,

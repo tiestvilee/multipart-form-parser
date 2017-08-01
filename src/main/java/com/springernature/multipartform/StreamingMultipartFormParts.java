@@ -13,7 +13,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
-public class MultipartFormParts implements Iterator<Part> {
+public class StreamingMultipartFormParts implements Iterator<Part> {
     private static final int DEFAULT_BUFSIZE = 4096;
 
 
@@ -61,11 +61,11 @@ public class MultipartFormParts implements Iterator<Part> {
     private byte[] oldBoundary = null;
     private byte[] oldBoundaryWithPrefix;
 
-    public static MultipartFormParts parse(byte[] boundary, InputStream inputStream, Charset encoding) throws IOException {
-        return new MultipartFormParts(boundary, inputStream, DEFAULT_BUFSIZE, encoding);
+    public static StreamingMultipartFormParts parse(byte[] boundary, InputStream inputStream, Charset encoding) throws IOException {
+        return new StreamingMultipartFormParts(boundary, inputStream, DEFAULT_BUFSIZE, encoding);
     }
 
-    public MultipartFormParts(byte[] boundary, InputStream inputStream, int bufSize, Charset encoding) throws IOException {
+    public StreamingMultipartFormParts(byte[] boundary, InputStream inputStream, int bufSize, Charset encoding) throws IOException {
         this.boundary = boundary;
         this.encoding = encoding;
         if (bufSize < this.boundary.length + FIELD_SEPARATOR.length) {
