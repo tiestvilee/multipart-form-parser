@@ -13,7 +13,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
-public class StreamingMultipartFormParts implements Iterator<Part> {
+public class StreamingMultipartFormParts implements Iterable<Part> {
     private static final int DEFAULT_BUFSIZE = 4096;
 
 
@@ -51,8 +51,7 @@ public class StreamingMultipartFormParts implements Iterator<Part> {
 
     private final TokenBoundedInputStream buf;
     private final Charset encoding;
-    private Part currentPart;
-    private boolean nextIsKnown;
+    private final Iterator<Part> iterator;
 
     private byte[] boundary;
     private byte[] boundaryWithPrefix;
@@ -75,10 +74,12 @@ public class StreamingMultipartFormParts implements Iterator<Part> {
 
         this.boundaryWithPrefix = addPrefixToBoundary(this.boundary);
 
-        nextIsKnown = false;
-        currentPart = null;
         state = MultipartFormStreamState.findBoundary;
-        //        parseNextPart();
+        iterator = new StreamingMulipartFormPartIterator();
+    }
+
+    @Override public Iterator<Part> iterator() {
+        return iterator;
     }
 
     private byte[] addPrefixToBoundary(byte[] boundary) {
@@ -125,59 +126,6 @@ public class StreamingMultipartFormParts implements Iterator<Part> {
             } else {
                 state = MultipartFormStreamState.header;
             }
-        }
-    }
-
-    @Override public boolean hasNext() {
-        if (nextIsKnown) {
-            return !isEndOfStream();
-        }
-        nextIsKnown = true;
-
-        if (state == MultipartFormStreamState.contents) {
-            try {
-                currentPart.close();
-            } catch (Exception e) {
-                /* ???? */
-            }
-        }
-
-        currentPart = safelyParseNextPart();
-
-        return !isEndOfStream();
-    }
-
-    @Override public Part next() {
-        if (nextIsKnown) {
-            if (isEndOfStream()) {
-                throw new NoSuchElementException("No more parts in this MultipartForm");
-            }
-            nextIsKnown = false;
-        } else {
-
-            if (state == MultipartFormStreamState.contents) {
-                try {
-                    currentPart.close();
-                } catch (Exception e) {
-                /* ???? */
-                }
-            }
-
-            currentPart = safelyParseNextPart();
-            if (isEndOfStream()) {
-                throw new NoSuchElementException("No more parts in this MultipartForm");
-            }
-        }
-        return currentPart;
-    }
-
-    private Part safelyParseNextPart() {
-        try {
-            return parseNextPart();
-        } catch (IOException e) {
-            nextIsKnown = true;
-            currentPart = null;
-            throw new ParseError(e);
         }
     }
 
@@ -264,8 +212,67 @@ public class StreamingMultipartFormParts implements Iterator<Part> {
         }
     }
 
-    public boolean isEndOfStream() {
-        return currentPart == null;
+    public class StreamingMulipartFormPartIterator implements Iterator<Part> {
+        private boolean nextIsKnown;
+        private Part currentPart;
+
+        @Override public boolean hasNext() {
+            if (nextIsKnown) {
+                return !isEndOfStream();
+            }
+            nextIsKnown = true;
+
+            if (state == MultipartFormStreamState.contents) {
+                try {
+                    currentPart.close();
+                } catch (Exception e) {
+                /* ???? */
+                }
+            }
+
+            currentPart = safelyParseNextPart();
+
+            return !isEndOfStream();
+        }
+
+        @Override public Part next() {
+            if (nextIsKnown) {
+                if (isEndOfStream()) {
+                    throw new NoSuchElementException("No more parts in this MultipartForm");
+                }
+                nextIsKnown = false;
+            } else {
+
+                if (state == MultipartFormStreamState.contents) {
+                    try {
+                        currentPart.close();
+                    } catch (Exception e) {
+                /* ???? */
+                    }
+                }
+
+                currentPart = safelyParseNextPart();
+                if (isEndOfStream()) {
+                    throw new NoSuchElementException("No more parts in this MultipartForm");
+                }
+            }
+            return currentPart;
+        }
+
+        private Part safelyParseNextPart() {
+            try {
+                return parseNextPart();
+            } catch (IOException e) {
+                nextIsKnown = true;
+                currentPart = null;
+                throw new ParseError(e);
+            }
+        }
+
+        private boolean isEndOfStream() {
+            return currentPart == null;
+        }
+
     }
 
     private class BoundedInputStream extends InputStream {
