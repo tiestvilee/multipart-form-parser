@@ -33,10 +33,9 @@ public class MultipartFormParts implements Iterator<Part> {
     public static final byte DASH = 0x2D;
 
     /**
-     * The maximum length of <code>header-part</code> that will be
-     * processed (10 kilobytes = 10240 bytes.).
+     * The maximum length of each header line
      */
-    public static final int HEADER_PART_SIZE_MAX = 10240;
+    public static final int HEADER_LINE_SIZE_MAX = 4096;
 
     /**
      * A byte sequence that that follows a delimiter that will be
@@ -246,7 +245,7 @@ public class MultipartFormParts implements Iterator<Part> {
         Map<String, String> result = new HashMap<>();
         String previousHeaderName = null;
         while (true) {
-            String header = buf.readStringFromStreamUntilMatched(FIELD_SEPARATOR, 1024);
+            String header = buf.readStringFromStreamUntilMatched(FIELD_SEPARATOR, HEADER_LINE_SIZE_MAX);
             if (header.equals("")) {
                 state = MultipartFormStreamState.contents;
                 return result;

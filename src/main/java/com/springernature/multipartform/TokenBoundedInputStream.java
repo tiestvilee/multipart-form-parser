@@ -51,7 +51,7 @@ public class TokenBoundedInputStream {
         int bufferIndex = 0;
 
         int b;
-        while ((b = inputStream.read()) > -1) {
+        while ((b = inputStream.read()) > -1 && bufferIndex < maxStringSizeInBytes) {
             byte originalB = (byte) b;
             inputStream.mark(endOfToken.length);
             if (matchToken(endOfToken, b) == endOfToken.length) {
@@ -59,6 +59,11 @@ public class TokenBoundedInputStream {
             }
             buffer[bufferIndex++] = originalB;
             inputStream.reset();
+        }
+
+        if (bufferIndex >= maxStringSizeInBytes) {
+            throw new TokenNotFoundException("Didn't find end of Token <<" + new String(endOfToken, encoding) + ">> " +
+                "within " + maxStringSizeInBytes + " bytes");
         }
 
         throw new TokenNotFoundException(
@@ -118,16 +123,15 @@ public class TokenBoundedInputStream {
         inputStream.mark(endOfToken.length);
         int b = inputStream.read();
         int eotIndex = 0;
-        while (eotIndex < endOfToken.length && ((byte) b == endOfToken[eotIndex])) { b = inputStream.read(); eotIndex++;}
+        while (eotIndex < endOfToken.length && ((byte) b == endOfToken[eotIndex])) {
+            b = inputStream.read();
+            eotIndex++;
+        }
         if (eotIndex == endOfToken.length) {
             inputStream.reset();
             return -1;
         }
         inputStream.reset();
         return inputStream.read();
-    }
-
-    public byte[] lastBytes(int numberOfBytes) {
-        return "Sorry, not available".getBytes(encoding);
     }
 }

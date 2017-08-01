@@ -4,6 +4,7 @@ import com.springernature.multipartform.exceptions.ParseError;
 import com.springernature.multipartform.exceptions.TokenNotFoundException;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.NoSuchElementException;
 
 import static com.googlecode.totallylazy.Pair.pair;
@@ -192,6 +193,18 @@ public class StreamingMultipartFormSadTests {
 
         form.next();
         assertParseErrorWrapsTokenNotFound(form, "Didn't find Token <<\r\n>>. Last 2 bytes read were <<>>");
+    }
+
+    @Test
+    public void failsIfHeadingTooLong() throws Exception {
+        String boundary = "-----2345";
+
+        char[] chars = new char[4096];
+        Arrays.fill(chars, 'x');
+        MultipartFormParts form = getMultipartFormParts(boundary, new ValidMultipartFormBuilder(boundary)
+            .file("aFile", new String(chars), "application/octet-stream", "File contents here").build());
+
+        assertParseErrorWrapsTokenNotFound(form, "Didn't find end of Token <<\r\n>> within 4096 bytes");
     }
 
     private void assertParseErrorWrapsTokenNotFound(MultipartFormParts form, String errorMessage) {
