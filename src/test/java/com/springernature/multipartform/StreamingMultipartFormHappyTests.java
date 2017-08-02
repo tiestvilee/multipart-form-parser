@@ -4,6 +4,7 @@ import com.springernature.multipartform.exceptions.AlreadyClosedException;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
@@ -262,8 +263,71 @@ public class StreamingMultipartFormHappyTests {
         assertThat(file2.getContentsAsString(), equalTo("Different file contents here"));
     }
 
+    @Test
+    public void canLoadComplexRealLifeExample() throws Exception {
+        Iterator<Part> parts = StreamingMultipartFormParts.parse(
+            "------WebKitFormBoundary6LmirFeqsyCQRtbj".getBytes(StandardCharsets.UTF_8),
+            new FileInputStream("examples/example.multipart"),
+            StandardCharsets.UTF_8
+        ).iterator();
+
+        assertFieldPart(parts, "articleType", "obituary");
+
+        {
+            Part file = parts.next();
+            assertThat("field name", file.getFieldName(), equalTo("uploadManuscript"));
+            assertThat("file name", file.getFileName(), equalTo("simple7bit.txt"));
+            assertThat("content type", file.getContentType(), equalTo("text/plain"));
+            assertPartIsNotField(file);
+            compareStreamToFile(file);
+        }
+
+        {
+            Part file = parts.next();
+            assertThat("field name", file.getFieldName(), equalTo("uploadManuscript"));
+            assertThat("file name", file.getFileName(), equalTo("starbucks.jpeg"));
+            assertThat("content type", file.getContentType(), equalTo("image/jpeg"));
+            assertPartIsNotField(file);
+            compareStreamToFile(file);
+        }
+
+        {
+            Part file = parts.next();
+            assertThat("field name", file.getFieldName(), equalTo("uploadManuscript"));
+            assertThat("file name", file.getFileName(), equalTo("utf8\uD83D\uDCA9.file"));
+            assertThat("content type", file.getContentType(), equalTo("application/octet-stream"));
+            assertPartIsNotField(file);
+            compareStreamToFile(file);
+        }
+
+        {
+            Part file = parts.next();
+            assertThat("field name", file.getFieldName(), equalTo("uploadManuscript"));
+            assertThat("file name", file.getFileName(), equalTo("utf8\uD83D\uDCA9.txt"));
+            assertThat("content type", file.getContentType(), equalTo("text/plain"));
+            assertPartIsNotField(file);
+            compareStreamToFile(file);
+        }
+
+    }
+
+    private void compareStreamToFile(Part file) throws IOException {
+        int index = 0;
+        InputStream formFile = file.inputStream;
+        InputStream original = new FileInputStream("examples/" + file.getFileName());
+        while (true) {
+            int actual = formFile.read();
+            int expected = original.read();
+            assertThat("index " + index, actual, equalTo(expected));
+            index++;
+            if (actual == -1) {
+                break;
+            }
+        }
+    }
+
     static Iterator<Part> getMultipartFormParts(String boundary, byte[] multipartFormContents) throws IOException {
-        return getMultipartFormParts(boundary.getBytes(Charset.forName("UTF-8")), multipartFormContents, Charset.forName("UTF-8"));
+        return getMultipartFormParts(boundary.getBytes(StandardCharsets.UTF_8), multipartFormContents, StandardCharsets.UTF_8);
     }
 
     static Iterator<Part> getMultipartFormParts(byte[] boundary, byte[] multipartFormContents, Charset encoding) throws IOException {

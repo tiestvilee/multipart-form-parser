@@ -5,9 +5,9 @@ import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
 
-public class InMemoryMultipartFormMap {
+public class MultipartFormMap {
 
-    public Map<String, InMemoryPart> readAllPartsFromStream(StreamingMultipartFormParts parts, Charset encoding, int maxPartContentSize) throws IOException {
+    public Map<String, InMemoryPart> allPartsInMemory(StreamingMultipartFormParts parts, Charset encoding, int maxPartContentSize) throws IOException {
         Map<String, InMemoryPart> partMap = new HashMap<>();
         for (Part part : parts) {
             partMap.put(part.getFieldName(), part.realise(encoding, maxPartContentSize));

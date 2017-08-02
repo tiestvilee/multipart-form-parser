@@ -13,6 +13,9 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
+/**
+ * <a href="http://www.ietf.org/rfc/rfc1867.txt">RFC 1867</a>
+ */
 public class StreamingMultipartFormParts implements Iterable<Part> {
     private static final int DEFAULT_BUFSIZE = 4096;
 
@@ -28,7 +31,9 @@ public class StreamingMultipartFormParts implements Iterable<Part> {
     public static final byte LF = 0x0A;
 
     /**
+     *
      * The dash (-) ASCII character value.
+     *
      */
     public static final byte DASH = 0x2D;
 
