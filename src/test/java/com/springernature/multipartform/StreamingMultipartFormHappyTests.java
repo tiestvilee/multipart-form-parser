@@ -264,51 +264,46 @@ public class StreamingMultipartFormHappyTests {
     }
 
     @Test
-    public void canLoadComplexRealLifeExample() throws Exception {
+    public void canLoadComplexRealLifeSafariExample() throws Exception {
         Iterator<Part> parts = StreamingMultipartFormParts.parse(
             "------WebKitFormBoundary6LmirFeqsyCQRtbj".getBytes(StandardCharsets.UTF_8),
-            new FileInputStream("examples/example.multipart"),
+            new FileInputStream("examples/safari-example.multipart"),
             StandardCharsets.UTF_8
         ).iterator();
 
         assertFieldPart(parts, "articleType", "obituary");
 
-        {
-            Part file = parts.next();
-            assertThat("field name", file.getFieldName(), equalTo("uploadManuscript"));
-            assertThat("file name", file.getFileName(), equalTo("simple7bit.txt"));
-            assertThat("content type", file.getContentType(), equalTo("text/plain"));
-            assertPartIsNotField(file);
-            compareStreamToFile(file);
-        }
+        assertRealLifeFile(parts, "simple7bit.txt", "text/plain");
+        assertRealLifeFile(parts, "starbucks.jpeg", "image/jpeg");
+        assertRealLifeFile(parts, "utf8\uD83D\uDCA9.file", "application/octet-stream");
+        assertRealLifeFile(parts, "utf8\uD83D\uDCA9.txt", "text/plain");
 
-        {
-            Part file = parts.next();
-            assertThat("field name", file.getFieldName(), equalTo("uploadManuscript"));
-            assertThat("file name", file.getFileName(), equalTo("starbucks.jpeg"));
-            assertThat("content type", file.getContentType(), equalTo("image/jpeg"));
-            assertPartIsNotField(file);
-            compareStreamToFile(file);
-        }
+    }
 
-        {
-            Part file = parts.next();
-            assertThat("field name", file.getFieldName(), equalTo("uploadManuscript"));
-            assertThat("file name", file.getFileName(), equalTo("utf8\uD83D\uDCA9.file"));
-            assertThat("content type", file.getContentType(), equalTo("application/octet-stream"));
-            assertPartIsNotField(file);
-            compareStreamToFile(file);
-        }
+    @Test
+    public void canLoadComplexRealLifeChromeExample() throws Exception {
+        Iterator<Part> parts = StreamingMultipartFormParts.parse(
+            "------WebKitFormBoundaryft3FGhOMTYoOkCCc".getBytes(StandardCharsets.UTF_8),
+            new FileInputStream("examples/chrome-example.multipart"),
+            StandardCharsets.UTF_8
+        ).iterator();
 
-        {
-            Part file = parts.next();
-            assertThat("field name", file.getFieldName(), equalTo("uploadManuscript"));
-            assertThat("file name", file.getFileName(), equalTo("utf8\uD83D\uDCA9.txt"));
-            assertThat("content type", file.getContentType(), equalTo("text/plain"));
-            assertPartIsNotField(file);
-            compareStreamToFile(file);
-        }
+        assertFieldPart(parts, "articleType", "obituary");
 
+        assertRealLifeFile(parts, "simple7bit.txt", "text/plain");
+        assertRealLifeFile(parts, "starbucks.jpeg", "image/jpeg");
+        assertRealLifeFile(parts, "utf8\uD83D\uDCA9.file", "application/octet-stream");
+        assertRealLifeFile(parts, "utf8\uD83D\uDCA9.txt", "text/plain");
+
+    }
+
+    private void assertRealLifeFile(Iterator<Part> parts, String fileName, String contentType) throws IOException {
+        Part file = parts.next();
+        assertThat("field name", file.getFieldName(), equalTo("uploadManuscript"));
+        assertThat("file name", file.getFileName(), equalTo(fileName));
+        assertThat("content type", file.getContentType(), equalTo(contentType));
+        assertPartIsNotField(file);
+        compareStreamToFile(file);
     }
 
     private void compareStreamToFile(Part file) throws IOException {
