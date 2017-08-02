@@ -306,10 +306,14 @@ public class StreamingMultipartFormHappyTests {
         compareStreamToFile(file);
     }
 
-    private void compareStreamToFile(Part file) throws IOException {
-        int index = 0;
+    public static void compareStreamToFile(Part file) throws IOException {
         InputStream formFile = file.inputStream;
-        InputStream original = new FileInputStream("examples/" + file.getFileName());
+        compareStreamToFile(formFile, file.getFileName());
+    }
+
+    public static void compareStreamToFile(InputStream formFile, String fileName) throws IOException {
+        int index = 0;
+        InputStream original = new FileInputStream("examples/" + fileName);
         while (true) {
             int actual = formFile.read();
             int expected = original.read();

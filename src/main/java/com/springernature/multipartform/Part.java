@@ -58,18 +58,24 @@ public class Part  extends InputStream implements Closeable {
     }
 
     public String getContentsAsString(int maxLength, Charset encoding) throws IOException {
+        return new String(getContentsAsBytes(maxLength), encoding);
+    }
+
+    public byte[] getContentsAsBytes(int maxLength) throws IOException {
         byte[] bytes = new byte[maxLength];
         int length = 0;
 
         while (true) {
             int count = inputStream.read(bytes, length, maxLength - length);
-            if (count < 0) {
+            if (count < 0 || length >= maxLength) {
                 inputStream.close();
                 break;
             }
             length += count;
         }
-        return new String(bytes, 0, length, encoding);
+        byte[] result = new byte[length];
+        System.arraycopy(bytes, 0, result, 0, length);
+        return result;
     }
 
     public Map<String, String> getHeaders() {
@@ -77,7 +83,7 @@ public class Part  extends InputStream implements Closeable {
     }
 
     public InMemoryPart realise(Charset encoding, int maxPartContentSize) throws IOException {
-        return new InMemoryPart(this, this.getContentsAsString(maxPartContentSize, encoding));
+        return new InMemoryPart(this, this.getContentsAsBytes(maxPartContentSize), encoding);
     }
 
 }
