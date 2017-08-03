@@ -204,15 +204,15 @@ public class StreamingMultipartFormHappyTests {
 
         Part file = form.next();
 
-        while (file.read() > 0) {
+        while (file.inputStream.read() > 0) {
             // keep reading.
         }
 
-        assertThat(file.read(), equalTo(-1));
-        file.close();
-        file.close(); // can close multiple times
+        assertThat(file.inputStream.read(), equalTo(-1));
+        file.inputStream.close();
+        file.inputStream.close(); // can close multiple times
         try {
-            int ignored = file.read();
+            int ignored = file.inputStream.read();
             fail("Should have complained that the part has been closed " + ignored);
         } catch (AlreadyClosedException e) {
             // pass
@@ -229,13 +229,13 @@ public class StreamingMultipartFormHappyTests {
         file.getContentsAsString();
 
         try {
-            int ignored = file.read();
+            int ignored = file.inputStream.read();
             fail("Should have complained that the part has been closed " + ignored);
         } catch (AlreadyClosedException e) {
             // pass
         }
 
-        file.close(); // can close multiple times
+        file.inputStream.close(); // can close multiple times
     }
 
     @Test
@@ -252,13 +252,13 @@ public class StreamingMultipartFormHappyTests {
         assertThat(file1, not(equalTo(file2)));
 
         try {
-            int ignored = file1.read();
+            int ignored = file1.inputStream.read();
             fail("Should have complained that the part has been closed " + ignored);
         } catch (AlreadyClosedException e) {
             // pass
         }
 
-        file1.close(); // can close multiple times
+        file1.inputStream.close(); // can close multiple times
 
         assertThat(file2.getContentsAsString(), equalTo("Different file contents here"));
     }
@@ -362,7 +362,7 @@ public class StreamingMultipartFormHappyTests {
 
     static void assertPart(String fieldName, String fieldValue, Part part, Charset encoding) throws IOException {
         assertThat("field name", part.getFieldName(), equalTo(fieldName));
-        assertThat("contents", part.getContentsAsString(4096, encoding), equalTo(fieldValue));
+        assertThat("contents", part.getContentsAsString(encoding, 4096), equalTo(fieldValue));
     }
 
     static void assertThereAreNoMoreParts(Iterator<Part> form) {

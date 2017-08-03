@@ -232,7 +232,7 @@ public class StreamingMultipartFormParts implements Iterable<Part> {
 
             if (state == MultipartFormStreamState.contents) {
                 try {
-                    currentPart.close();
+                    currentPart.inputStream.close();
                 } catch (Exception e) {
                 /* ???? */
                 }
@@ -253,7 +253,7 @@ public class StreamingMultipartFormParts implements Iterable<Part> {
 
                 if (state == MultipartFormStreamState.contents) {
                     try {
-                        currentPart.close();
+                        currentPart.inputStream.close();
                     } catch (Exception e) {
                 /* ???? */
                     }

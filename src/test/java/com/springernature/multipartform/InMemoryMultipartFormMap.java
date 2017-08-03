@@ -54,7 +54,7 @@ public class InMemoryMultipartFormMap {
         assertFileIsCorrect(partMap.get("uploadManuscript").get(2), "utf8\uD83D\uDCA9.file");
         assertFileIsCorrect(partMap.get("uploadManuscript").get(3), "utf8\uD83D\uDCA9.txt");
 
-        assertFileIsCorrect(partMap.get("uploadManuscript").get(1), "starbucks.jpeg", new ByteArrayInputStream(partMap.get("uploadManuscript").get(1).bytes));
+        assertFileIsCorrect(partMap.get("uploadManuscript").get(1), "starbucks.jpeg", new ByteArrayInputStream(partMap.get("uploadManuscript").get(1).getBytes()));
 
         assertThat(partMap.get("articleType").get(0).content, equalTo("obituary"));
     }
@@ -87,7 +87,7 @@ public class InMemoryMultipartFormMap {
 
         try {
             MultipartFormMap.allPartsInMemory(form, UTF_8, 1024);
-            fail("should have failed because the form is too big");
+            fail("should have failed because the part is too big");
         } catch (StreamTooLongException e) {
             assertThat(e.getMessage(), containsString("Part contents was longer than 1024 bytes"));
         }

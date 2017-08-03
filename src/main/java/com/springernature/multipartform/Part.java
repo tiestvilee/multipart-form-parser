@@ -2,7 +2,6 @@ package com.springernature.multipartform;
 
 import com.springernature.multipartform.exceptions.StreamTooLongException;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
@@ -10,7 +9,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Map;
 
-public class Part extends InputStream implements Closeable {
+public class Part {
     public final String fieldName;
     public final boolean formField;
     public final String contentType;
@@ -25,14 +24,6 @@ public class Part extends InputStream implements Closeable {
         this.fileName = fileName;
         this.inputStream = inputStream;
         this.headers = Collections.unmodifiableMap(headers);
-    }
-
-    @Override public int read() throws IOException {
-        return inputStream.read();
-    }
-
-    @Override public void close() throws IOException {
-        inputStream.close();
     }
 
     public String getFieldName() {
@@ -60,12 +51,12 @@ public class Part extends InputStream implements Closeable {
     }
 
     public String getContentsAsString() throws IOException {
-        return getContentsAsString(4096, StandardCharsets.UTF_8);
+        return getContentsAsString(StandardCharsets.UTF_8, 4096);
     }
 
-    public String getContentsAsString(int maxLength, Charset encoding) throws IOException {
-        byte[] bytes = new byte[maxLength];
-        int length = getContentsAsBytes(maxLength, bytes);
+    public String getContentsAsString(Charset encoding, int maxPartContentSize) throws IOException {
+        byte[] bytes = new byte[maxPartContentSize];
+        int length = getContentsAsBytes(maxPartContentSize, bytes);
         return new String(bytes, 0, length, encoding);
     }
 
@@ -76,7 +67,7 @@ public class Part extends InputStream implements Closeable {
             int count = inputStream.read(bytes, length, maxLength - length);
             if (count < 0) {
                 inputStream.close();
-                break;
+                return length;
             }
             if (length >= maxLength) {
                 inputStream.close();
@@ -84,7 +75,6 @@ public class Part extends InputStream implements Closeable {
             }
             length += count;
         }
-        return length;
     }
 
     public InMemoryPart realise(Charset encoding, int maxPartContentSize) throws IOException {
