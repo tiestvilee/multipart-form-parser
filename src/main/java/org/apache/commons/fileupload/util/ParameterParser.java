@@ -1,4 +1,4 @@
-package com.springernature.multipartform.apache;
+package org.apache.commons.fileupload.util;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
@@ -17,7 +17,7 @@ package com.springernature.multipartform.apache;
  * limitations under the License.
  */
 
-import com.springernature.multipartform.apache.mime.MimeUtility;
+import org.apache.commons.fileupload.util.mime.MimeUtility;
 
 import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
