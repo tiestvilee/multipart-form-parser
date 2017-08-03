@@ -1,5 +1,7 @@
 package com.springernature.multipartform;
 
+import com.springernature.multipartform.exceptions.StreamTooLongException;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
@@ -8,7 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Map;
 
-public class Part  extends InputStream implements Closeable {
+public class Part extends InputStream implements Closeable {
     public final String fieldName;
     public final boolean formField;
     public final String contentType;
@@ -53,37 +55,44 @@ public class Part  extends InputStream implements Closeable {
         throw new UnsupportedOperationException("sink not implemented");
     }
 
+    public Map<String, String> getHeaders() {
+        return headers;
+    }
+
     public String getContentsAsString() throws IOException {
         return getContentsAsString(4096, StandardCharsets.UTF_8);
     }
 
     public String getContentsAsString(int maxLength, Charset encoding) throws IOException {
-        return new String(getContentsAsBytes(maxLength), encoding);
+        byte[] bytes = new byte[maxLength];
+        int length = getContentsAsBytes(maxLength, bytes);
+        return new String(bytes, 0, length, encoding);
     }
 
-    public byte[] getContentsAsBytes(int maxLength) throws IOException {
-        byte[] bytes = new byte[maxLength];
+    private int getContentsAsBytes(int maxLength, byte[] bytes) throws IOException {
         int length = 0;
 
         while (true) {
             int count = inputStream.read(bytes, length, maxLength - length);
-            if (count < 0 || length >= maxLength) {
+            if (count < 0) {
                 inputStream.close();
                 break;
             }
+            if (length >= maxLength) {
+                inputStream.close();
+                throw new StreamTooLongException("Part contents was longer than " + maxLength + " bytes");
+            }
             length += count;
         }
-        byte[] result = new byte[length];
-        System.arraycopy(bytes, 0, result, 0, length);
-        return result;
-    }
-
-    public Map<String, String> getHeaders() {
-        return headers;
+        return length;
     }
 
     public InMemoryPart realise(Charset encoding, int maxPartContentSize) throws IOException {
-        return new InMemoryPart(this, this.getContentsAsBytes(maxPartContentSize), encoding);
+        byte[] bytes = new byte[maxPartContentSize];
+        int length = getContentsAsBytes(maxPartContentSize, bytes);
+        byte[] result = new byte[length];
+        System.arraycopy(bytes, 0, result, 0, length);
+        return new InMemoryPart(this, result, encoding);
     }
 
 }

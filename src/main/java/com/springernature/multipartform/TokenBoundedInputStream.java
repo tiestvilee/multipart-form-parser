@@ -1,5 +1,6 @@
 package com.springernature.multipartform;
 
+import com.springernature.multipartform.exceptions.StreamTooLongException;
 import com.springernature.multipartform.exceptions.TokenNotFoundException;
 
 import java.io.BufferedInputStream;
@@ -10,11 +11,17 @@ import java.nio.charset.Charset;
 public class TokenBoundedInputStream {
     private final BufferedInputStream inputStream;
     private final Charset encoding;
+    private final int maxStreamLength;
     private long currentByteIndex;
     private long currentMark;
 
     public TokenBoundedInputStream(InputStream inputStream, int bufSize, Charset encoding) throws IOException {
+        this(inputStream, bufSize, encoding, -1);
+    }
+
+    public TokenBoundedInputStream(InputStream inputStream, int bufSize, Charset encoding, int maxStreamLength) {
         this.encoding = encoding;
+        this.maxStreamLength = maxStreamLength;
         this.inputStream = new BufferedInputStream(inputStream, bufSize);
         currentByteIndex = 0;
     }
@@ -151,6 +158,9 @@ public class TokenBoundedInputStream {
 
     private int readFromStream() throws IOException {
         currentByteIndex++;
+        if (maxStreamLength > -1 && currentByteIndex >= maxStreamLength) {
+            throw new StreamTooLongException("Form contents was longer than " + maxStreamLength + " bytes");
+        }
         return inputStream.read();
     }
 

@@ -54,7 +54,7 @@ public class StreamingMultipartFormParts implements Iterable<Part> {
      */
     protected static final byte[] STREAM_TERMINATOR = {DASH, DASH};
 
-    private final TokenBoundedInputStream buf;
+    private final TokenBoundedInputStream inputStream;
     private final Charset encoding;
     private final Iterator<Part> iterator;
 
@@ -66,16 +66,17 @@ public class StreamingMultipartFormParts implements Iterable<Part> {
     private byte[] oldBoundaryWithPrefix;
 
     public static StreamingMultipartFormParts parse(byte[] boundary, InputStream inputStream, Charset encoding) throws IOException {
-        return new StreamingMultipartFormParts(boundary, inputStream, DEFAULT_BUFSIZE, encoding);
+        return new StreamingMultipartFormParts(boundary, encoding, new TokenBoundedInputStream(inputStream, DEFAULT_BUFSIZE, encoding));
     }
 
-    public StreamingMultipartFormParts(byte[] boundary, InputStream inputStream, int bufSize, Charset encoding) throws IOException {
+    public static StreamingMultipartFormParts parse(byte[] boundary, InputStream inputStream, Charset encoding, int maxStreamLength) throws IOException {
+        return new StreamingMultipartFormParts(boundary, encoding, new TokenBoundedInputStream(inputStream, DEFAULT_BUFSIZE, encoding, maxStreamLength));
+    }
+
+    public StreamingMultipartFormParts(byte[] boundary, Charset encoding, TokenBoundedInputStream tokenBoundedInputStream) throws IOException {
         this.boundary = boundary;
         this.encoding = encoding;
-        if (bufSize < this.boundary.length + FIELD_SEPARATOR.length) {
-            throw new IllegalArgumentException("bufSize must be bigger than the boundary");
-        }
-        buf = new TokenBoundedInputStream(inputStream, bufSize, encoding);
+        this.inputStream = tokenBoundedInputStream;
 
         this.boundaryWithPrefix = addPrefixToBoundary(this.boundary);
 
@@ -96,7 +97,7 @@ public class StreamingMultipartFormParts implements Iterable<Part> {
 
     private void findBoundary() throws IOException {
         if (state == MultipartFormStreamState.findPrefix) {
-            if (!buf.matchInStream(FIELD_SEPARATOR)) {
+            if (!inputStream.matchInStream(FIELD_SEPARATOR)) {
                 throw new TokenNotFoundException("Boundary must be proceeded by field separator, but didn't find it");
             }
             state = MultipartFormStreamState.findBoundary;
@@ -104,13 +105,13 @@ public class StreamingMultipartFormParts implements Iterable<Part> {
 
         assertStateIs(MultipartFormStreamState.findBoundary);
 
-        if (!buf.dropFromStreamUntilMatched(boundary)) {
+        if (!inputStream.dropFromStreamUntilMatched(boundary)) {
             // what about when this isn't at the beginning of a line...
             throw new TokenNotFoundException("Boundary not found <<" + new String(boundary, encoding) + ">>");
         }
         state = MultipartFormStreamState.boundaryFound;
-        if (buf.matchInStream(STREAM_TERMINATOR)) {
-            if (buf.matchInStream(FIELD_SEPARATOR)) {
+        if (inputStream.matchInStream(STREAM_TERMINATOR)) {
+            if (inputStream.matchInStream(FIELD_SEPARATOR)) {
                 // what if the stream terminator is found but the field separator isn't...
                 if (mixedName != null) {
                     boundary = oldBoundary;
@@ -126,7 +127,7 @@ public class StreamingMultipartFormParts implements Iterable<Part> {
                 throw new TokenNotFoundException("Stream terminator must be followed by field separator, but didn't find it");
             }
         } else {
-            if (!buf.matchInStream(FIELD_SEPARATOR)) {
+            if (!inputStream.matchInStream(FIELD_SEPARATOR)) {
                 throw new TokenNotFoundException("Boundary must be followed by field separator, but didn't find it");
             } else {
                 state = MultipartFormStreamState.header;
@@ -197,9 +198,9 @@ public class StreamingMultipartFormParts implements Iterable<Part> {
 
         Map<String, String> result = new HashMap<>();
         String previousHeaderName = null;
-        long maxByteIndexForHeader = buf.currentByteIndex() + HEADER_SIZE_MAX;
-        while (buf.currentByteIndex() < maxByteIndexForHeader) {
-            String header = buf.readStringFromStreamUntilMatched(FIELD_SEPARATOR, (int) (maxByteIndexForHeader - buf.currentByteIndex()));
+        long maxByteIndexForHeader = inputStream.currentByteIndex() + HEADER_SIZE_MAX;
+        while (inputStream.currentByteIndex() < maxByteIndexForHeader) {
+            String header = inputStream.readStringFromStreamUntilMatched(FIELD_SEPARATOR, (int) (maxByteIndexForHeader - inputStream.currentByteIndex()));
             if (header.equals("")) {
                 state = MultipartFormStreamState.contents;
                 return result;
@@ -300,7 +301,7 @@ public class StreamingMultipartFormParts implements Iterable<Part> {
         }
 
         private int readNextByte() throws IOException {
-            int result = buf.readByteFromStreamUntilMatched(boundaryWithPrefix);
+            int result = inputStream.readByteFromStreamUntilMatched(boundaryWithPrefix);
             if (result == -1) {
                 state = MultipartFormStreamState.findPrefix;
                 endOfStream = true;
