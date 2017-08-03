@@ -3,6 +3,7 @@ package com.springernature.multipartform;
 import com.springernature.multipartform.exceptions.AlreadyClosedException;
 import com.springernature.multipartform.exceptions.ParseError;
 import com.springernature.multipartform.exceptions.TokenNotFoundException;
+import com.springernature.multipartform.stream.TokenBoundedInputStream;
 import org.apache.commons.fileupload.util.ParameterParser;
 
 import java.io.IOException;

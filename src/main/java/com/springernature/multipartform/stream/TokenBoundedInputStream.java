@@ -1,4 +1,4 @@
-package com.springernature.multipartform;
+package com.springernature.multipartform.stream;
 
 import com.springernature.multipartform.exceptions.StreamTooLongException;
 import com.springernature.multipartform.exceptions.TokenNotFoundException;
