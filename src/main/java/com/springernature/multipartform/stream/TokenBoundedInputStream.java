@@ -27,26 +27,6 @@ public class TokenBoundedInputStream {
     }
 
     /**
-     * Consumes all bytes up to and including the matched endOfToken bytes.
-     *
-     * @param endOfToken bytes that indicate the end of this token.
-     * @return true if token found, false if not.
-     * @throws IOException
-     */
-    public boolean dropFromStreamUntilMatched(byte[] endOfToken) throws IOException {
-        // very inefficient search!
-        int b;
-        while ((b = readFromStream()) > -1) {
-            markStream(endOfToken);
-            if (matchToken(endOfToken, b) == endOfToken.length) {
-                return true;
-            }
-            resetToMarkInStream();
-        }
-        return false;
-    }
-
-    /**
      * Consumes all bytes up to and including the matched endOfToken bytes. Returns a
      * String made up of those bytes, excluding the matched endOfToken bytes.
      *

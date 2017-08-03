@@ -106,14 +106,12 @@ public class StreamingMultipartFormParts implements Iterable<Part> {
 
         assertStateIs(MultipartFormStreamState.findBoundary);
 
-        if (!inputStream.dropFromStreamUntilMatched(boundary)) {
-            // what about when this isn't at the beginning of a line...
+        if (!inputStream.matchInStream(boundary)) {
             throw new TokenNotFoundException("Boundary not found <<" + new String(boundary, encoding) + ">>");
         }
         state = MultipartFormStreamState.boundaryFound;
         if (inputStream.matchInStream(STREAM_TERMINATOR)) {
             if (inputStream.matchInStream(FIELD_SEPARATOR)) {
-                // what if the stream terminator is found but the field separator isn't...
                 if (mixedName != null) {
                     boundary = oldBoundary;
                     boundaryWithPrefix = oldBoundaryWithPrefix;
