@@ -7,7 +7,7 @@ public class InMemoryPart extends Part {
     public final String content;
 
     InMemoryPart(Part original, byte[] bytes, Charset encoding) {
-        super(original.fieldName, original.formField, original.contentType, original.fileName, null, original.headers);
+        super(original.fieldName, original.formField, original.contentType, original.fileName, original.headers);
 
         this.bytes = bytes;
         this.content = new String(bytes, encoding); // double the memory... bad?

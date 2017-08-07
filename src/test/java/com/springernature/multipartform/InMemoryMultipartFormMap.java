@@ -31,7 +31,7 @@ public class InMemoryMultipartFormMap {
             .field("multi", "value2")
             .build());
         StreamingMultipartFormParts form = StreamingMultipartFormParts.parse(boundary.getBytes(UTF_8), multipartFormContentsStream, UTF_8);
-        Map<String, List<InMemoryPart>> partMap = MultipartFormMap.allPartsInMemory(form, UTF_8, 1024);
+        Map<String, List<InMemoryPart>> partMap = MultipartFormMap.inMemoryFormMap(form, UTF_8, 1024);
 
         assertThat(partMap.get("file").get(0).fileName, equalTo("foo.tab"));
         assertThat(partMap.get("anotherFile").get(0).fileName, equalTo("BAR.tab"));
@@ -48,7 +48,7 @@ public class InMemoryMultipartFormMap {
             new FileInputStream("examples/safari-example.multipart"),
             UTF_8
         );
-        Map<String, List<InMemoryPart>> partMap = MultipartFormMap.allPartsInMemory(form, UTF_8, 102400);
+        Map<String, List<InMemoryPart>> partMap = MultipartFormMap.inMemoryFormMap(form, UTF_8, 102400);
 
         assertFileIsCorrect(partMap.get("uploadManuscript").get(0), "simple7bit.txt");
         assertFileIsCorrect(partMap.get("uploadManuscript").get(2), "utf8\uD83D\uDCA9.file");
@@ -69,7 +69,7 @@ public class InMemoryMultipartFormMap {
         );
 
         try {
-            MultipartFormMap.allPartsInMemory(form, UTF_8, 1024);
+            MultipartFormMap.inMemoryFormMap(form, UTF_8, 1024);
             fail("should have failed because the form is too big");
         } catch (StreamTooLongException e) {
             assertThat(e.getMessage(), containsString("Form contents was longer than 1024 bytes"));
@@ -86,7 +86,7 @@ public class InMemoryMultipartFormMap {
         );
 
         try {
-            MultipartFormMap.allPartsInMemory(form, UTF_8, 1024);
+            MultipartFormMap.inMemoryFormMap(form, UTF_8, 1024);
             fail("should have failed because the part is too big");
         } catch (StreamTooLongException e) {
             assertThat(e.getMessage(), containsString("Part contents was longer than 1024 bytes"));

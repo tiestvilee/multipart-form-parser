@@ -5,6 +5,7 @@ import com.springernature.multipartform.exceptions.ParseError;
 import com.springernature.multipartform.exceptions.TokenNotFoundException;
 import com.springernature.multipartform.stream.TokenBoundedInputStream;
 import org.apache.commons.fileupload.util.ParameterParser;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -17,7 +18,7 @@ import java.util.NoSuchElementException;
 /**
  * <a href="http://www.ietf.org/rfc/rfc1867.txt">RFC 1867</a>
  */
-public class StreamingMultipartFormParts implements Iterable<Part> {
+public class StreamingMultipartFormParts implements Iterable<StreamingPart> {
     private static final int DEFAULT_BUFSIZE = 4096;
 
 
@@ -57,7 +58,7 @@ public class StreamingMultipartFormParts implements Iterable<Part> {
 
     private final TokenBoundedInputStream inputStream;
     private final Charset encoding;
-    private final Iterator<Part> iterator;
+    private final Iterator<StreamingPart> iterator;
 
     private byte[] boundary;
     private byte[] boundaryWithPrefix;
@@ -85,7 +86,7 @@ public class StreamingMultipartFormParts implements Iterable<Part> {
         iterator = new StreamingMulipartFormPartIterator();
     }
 
-    @Override public Iterator<Part> iterator() {
+    @NotNull @Override public Iterator<StreamingPart> iterator() {
         return iterator;
     }
 
@@ -134,7 +135,7 @@ public class StreamingMultipartFormParts implements Iterable<Part> {
         }
     }
 
-    private Part parseNextPart() throws IOException {
+    private StreamingPart parseNextPart() throws IOException {
         findBoundary();
         if (state == MultipartFormStreamState.header) {
             return parsePart();
@@ -143,7 +144,7 @@ public class StreamingMultipartFormParts implements Iterable<Part> {
         }
     }
 
-    private Part parsePart() throws IOException {
+    private StreamingPart parsePart() throws IOException {
         Map<String, String> headers = parseHeaderLines();
 
         String contentType = headers.get("Content-Type");
@@ -166,7 +167,7 @@ public class StreamingMultipartFormParts implements Iterable<Part> {
             String fieldName = contentDisposition.containsKey("attachment") ? mixedName : trim(contentDisposition.get("name"));
             String filename = filenameFromMap(contentDisposition);
 
-            return new Part(
+            return new StreamingPart(
                 fieldName,
                 !contentDisposition.containsKey("filename"),
                 contentType,
@@ -219,9 +220,9 @@ public class StreamingMultipartFormParts implements Iterable<Part> {
         throw new TokenNotFoundException("Didn't find end of Header section within " + HEADER_SIZE_MAX + " bytes");
     }
 
-    public class StreamingMulipartFormPartIterator implements Iterator<Part> {
+    public class StreamingMulipartFormPartIterator implements Iterator<StreamingPart> {
         private boolean nextIsKnown;
-        private Part currentPart;
+        private StreamingPart currentPart;
 
         @Override public boolean hasNext() {
             if (nextIsKnown) {
@@ -242,7 +243,7 @@ public class StreamingMultipartFormParts implements Iterable<Part> {
             return !isEndOfStream();
         }
 
-        @Override public Part next() {
+        @Override public StreamingPart next() {
             if (nextIsKnown) {
                 if (isEndOfStream()) {
                     throw new NoSuchElementException("No more parts in this MultipartForm");
@@ -266,7 +267,7 @@ public class StreamingMultipartFormParts implements Iterable<Part> {
             return currentPart;
         }
 
-        private Part safelyParseNextPart() {
+        private StreamingPart safelyParseNextPart() {
             try {
                 return parseNextPart();
             } catch (IOException e) {
