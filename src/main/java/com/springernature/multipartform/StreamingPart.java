@@ -1,6 +1,6 @@
 package com.springernature.multipartform;
 
-import com.springernature.multipartform.exceptions.StreamTooLongException;
+import com.springernature.multipartform.stream.StreamUtil;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -21,25 +21,7 @@ public class StreamingPart extends Part {
     }
 
     public String getContentsAsString(Charset encoding, int maxPartContentSize) throws IOException {
-        byte[] bytes = new byte[maxPartContentSize];
-        int length = getContentsAsBytes(maxPartContentSize, bytes);
-        return new String(bytes, 0, length, encoding);
+        return StreamUtil.readStringFromInputStream(inputStream, encoding, maxPartContentSize);
     }
 
-    public int getContentsAsBytes(int maxLength, byte[] bytes) throws IOException {
-        int length = 0;
-
-        while (true) {
-            int count = inputStream.read(bytes, length, maxLength - length);
-            if (count < 0) {
-                inputStream.close();
-                return length;
-            }
-            if (length >= maxLength) {
-                inputStream.close();
-                throw new StreamTooLongException("Part contents was longer than " + maxLength + " bytes");
-            }
-            length += count;
-        }
-    }
 }

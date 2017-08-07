@@ -43,32 +43,32 @@ public class DiskBackedMultipartFormMap {
             .field("multi", "value2")
             .build());
         StreamingMultipartFormParts form = StreamingMultipartFormParts.parse(boundary.getBytes(UTF_8), multipartFormContentsStream, UTF_8);
-        Map<String, List<DiskBackedPart>> partMap = MultipartFormMap.diskBackedFormMap(form, UTF_8, 1024);
+        Map<String, List<PartWithInputStream>> partMap = MultipartFormMap.diskBackedFormMap(form, UTF_8, 1024);
 
         assertThat(partMap.get("file").get(0).fileName, equalTo("foo.tab"));
         assertThat(partMap.get("anotherFile").get(0).fileName, equalTo("BAR.tab"));
-//        assertThat(partMap.get("field").get(0).content, equalTo("fieldValue" + CR_LF + "with cr lf"));
-//        assertThat(partMap.get("multi").get(0).content, equalTo("value1"));
-//        assertThat(partMap.get("multi").get(1).content, equalTo("value2"));
+//        assertThat(partMap.get("field").get(0).getInputStream(), equalTo("fieldValue" + CR_LF + "with cr lf"));
+//        assertThat(partMap.get("multi").get(0).getInputStream(), equalTo("value1"));
+//        assertThat(partMap.get("multi").get(1).getInputStream(), equalTo("value2"));
     }
 
-//    @Test
-//    public void canLoadComplexRealLifeSafariExample() throws Exception {
-//        StreamingMultipartFormParts form = StreamingMultipartFormParts.parse(
-//            "------WebKitFormBoundary6LmirFeqsyCQRtbj".getBytes(UTF_8),
-//            new FileInputStream("examples/safari-example.multipart"),
-//            UTF_8
-//        );
-//        Map<String, List<DiskBackedPart>> partMap = MultipartFormMap.diskBackedFormMap(form, UTF_8, 1024);
+    @Test
+    public void canLoadComplexRealLifeSafariExample() throws Exception {
+        StreamingMultipartFormParts form = StreamingMultipartFormParts.parse(
+            "------WebKitFormBoundary6LmirFeqsyCQRtbj".getBytes(UTF_8),
+            new FileInputStream("examples/safari-example.multipart"),
+            UTF_8
+        );
+        Map<String, List<PartWithInputStream>> partMap = MultipartFormMap.diskBackedFormMap(form, UTF_8, 10240);
+
+        assertFileIsCorrect(partMap.get("uploadManuscript").get(0), "simple7bit.txt");
+        assertFileIsCorrect(partMap.get("uploadManuscript").get(2), "utf8\uD83D\uDCA9.file");
+        assertFileIsCorrect(partMap.get("uploadManuscript").get(3), "utf8\uD83D\uDCA9.txt");
+
+//        assertFileIsCorrect(partMap.get("uploadManuscript").get(1), "starbucks.jpeg", new ByteArrayInputStream(partMap.get("uploadManuscript").get(1).getBytes()));
 //
-//        assertFileIsCorrect(partMap.get("uploadManuscript").get(0), "simple7bit.txt");
-//        assertFileIsCorrect(partMap.get("uploadManuscript").get(2), "utf8\uD83D\uDCA9.file");
-//        assertFileIsCorrect(partMap.get("uploadManuscript").get(3), "utf8\uD83D\uDCA9.txt");
-//
-////        assertFileIsCorrect(partMap.get("uploadManuscript").get(1), "starbucks.jpeg", new ByteArrayInputStream(partMap.get("uploadManuscript").get(1).getBytes()));
-////
-////        assertThat(partMap.get("articleType").get(0).content, equalTo("obituary"));
-//    }
+//        assertThat(partMap.get("articleType").get(0).content, equalTo("obituary"));
+    }
 
     @Test
     public void failsIfFormIsTooBig() throws Exception {
@@ -87,28 +87,26 @@ public class DiskBackedMultipartFormMap {
         }
     }
 
-//    @Test
-//    public void failsIfPartIsTooBig() throws Exception {
-//        StreamingMultipartFormParts form = StreamingMultipartFormParts.parse(
-//            "------WebKitFormBoundary6LmirFeqsyCQRtbj".getBytes(UTF_8),
-//            new FileInputStream("examples/safari-example.multipart"),
-//            UTF_8,
-//            10240
-//        );
-//
-//        try {
-//            MultipartFormMap.diskBackedFormMap(form, UTF_8, 1024);
-//            fail("should have failed because the part is too big");
-//        } catch (StreamTooLongException e) {
-//            assertThat(e.getMessage(), containsString("Part contents was longer than 1024 bytes"));
-//        }
-//    }
+    @Test
+    public void maybeSavesToDisk() throws Exception {
+        StreamingMultipartFormParts form = StreamingMultipartFormParts.parse(
+            "------WebKitFormBoundary6LmirFeqsyCQRtbj".getBytes(UTF_8),
+            new FileInputStream("examples/safari-example.multipart"),
+            UTF_8
+        );
 
-    private void assertFileIsCorrect(DiskBackedPart filePart, String expectedFilename) throws IOException {
-//        assertFileIsCorrect(filePart, expectedFilename, filePart.inputStream);
+        Map<String, List<PartWithInputStream>> partMap = MultipartFormMap.diskBackedFormMap(form, UTF_8, 100);
+
+        assertFileIsCorrect(partMap.get("uploadManuscript").get(0), "simple7bit.txt");
+        assertFileIsCorrect(partMap.get("uploadManuscript").get(2), "utf8\uD83D\uDCA9.file");
+        assertFileIsCorrect(partMap.get("uploadManuscript").get(3), "utf8\uD83D\uDCA9.txt");
     }
 
-    private void assertFileIsCorrect(DiskBackedPart filePart, String expectedFilename, InputStream inputStream) throws IOException {
+    private void assertFileIsCorrect(PartWithInputStream filePart, String expectedFilename) throws IOException {
+        assertFileIsCorrect(filePart, expectedFilename, filePart.getInputStream());
+    }
+
+    private void assertFileIsCorrect(Part filePart, String expectedFilename, InputStream inputStream) throws IOException {
         assertThat(filePart.fileName, equalTo(expectedFilename));
         compareStreamToFile(inputStream, filePart.getFileName());
     }

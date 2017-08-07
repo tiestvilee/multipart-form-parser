@@ -1,13 +1,20 @@
 package com.springernature.multipartform;
 
-import java.nio.charset.Charset;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 
-public class DiskBackedPart extends Part {
+public class DiskBackedPart extends PartWithInputStream {
 
-    public DiskBackedPart(Part original, byte[] result, Charset encoding) {
-        super(original.fieldName, original.formField, original.contentType, original.fileName, original.headers);
+    private final File theFile;
 
-//        this.bytes = bytes;
-//        this.content = new String(bytes, encoding); // double the memory... bad?
+    public DiskBackedPart(Part part, File theFile) {
+        super(part.fieldName, part.formField, part.contentType, part.fileName, part.headers);
+        this.theFile = theFile;
+    }
+
+    public InputStream getInputStream() throws IOException {
+        return new FileInputStream(theFile);
     }
 }

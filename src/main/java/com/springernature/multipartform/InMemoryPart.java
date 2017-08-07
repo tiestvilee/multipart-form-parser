@@ -1,8 +1,10 @@
 package com.springernature.multipartform;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.nio.charset.Charset;
 
-public class InMemoryPart extends Part {
+public class InMemoryPart extends PartWithInputStream {
     private final byte[] bytes; // not immutable
     public final String content;
 
@@ -19,5 +21,9 @@ public class InMemoryPart extends Part {
 
     public String getContent() {
         return content;
+    }
+
+    public InputStream getInputStream() {
+        return new ByteArrayInputStream(bytes);
     }
 }
