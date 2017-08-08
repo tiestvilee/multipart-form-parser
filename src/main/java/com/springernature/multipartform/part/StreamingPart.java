@@ -1,4 +1,4 @@
-package com.springernature.multipartform;
+package com.springernature.multipartform.part;
 
 import com.springernature.multipartform.stream.StreamUtil;
 

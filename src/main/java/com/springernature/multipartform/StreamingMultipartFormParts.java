@@ -3,6 +3,7 @@ package com.springernature.multipartform;
 import com.springernature.multipartform.exceptions.AlreadyClosedException;
 import com.springernature.multipartform.exceptions.ParseError;
 import com.springernature.multipartform.exceptions.TokenNotFoundException;
+import com.springernature.multipartform.part.StreamingPart;
 import com.springernature.multipartform.stream.TokenBoundedInputStream;
 import org.apache.commons.fileupload.util.ParameterParser;
 import org.jetbrains.annotations.NotNull;
@@ -75,7 +76,7 @@ public class StreamingMultipartFormParts implements Iterable<StreamingPart> {
         return new StreamingMultipartFormParts(boundary, encoding, new TokenBoundedInputStream(inputStream, DEFAULT_BUFSIZE, encoding, maxStreamLength));
     }
 
-    public StreamingMultipartFormParts(byte[] boundary, Charset encoding, TokenBoundedInputStream tokenBoundedInputStream) throws IOException {
+    private StreamingMultipartFormParts(byte[] boundary, Charset encoding, TokenBoundedInputStream tokenBoundedInputStream) throws IOException {
         this.boundary = boundary;
         this.encoding = encoding;
         this.inputStream = tokenBoundedInputStream;

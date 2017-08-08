@@ -1,4 +1,4 @@
-package com.springernature.multipartform;
+package com.springernature.multipartform.part;
 
 import java.util.Collections;
 import java.util.Map;

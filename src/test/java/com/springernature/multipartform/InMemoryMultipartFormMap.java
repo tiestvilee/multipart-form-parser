@@ -1,6 +1,7 @@
 package com.springernature.multipartform;
 
 import com.springernature.multipartform.exceptions.StreamTooLongException;
+import com.springernature.multipartform.part.InMemoryPart;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;

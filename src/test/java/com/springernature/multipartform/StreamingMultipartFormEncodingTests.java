@@ -1,5 +1,6 @@
 package com.springernature.multipartform;
 
+import com.springernature.multipartform.part.StreamingPart;
 import org.junit.Test;
 
 import java.io.IOException;

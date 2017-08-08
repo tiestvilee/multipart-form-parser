@@ -1,4 +1,4 @@
-package com.springernature.multipartform;
+package com.springernature.multipartform.part;
 
 import java.io.IOException;
 import java.util.Collections;

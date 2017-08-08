@@ -2,6 +2,7 @@ package com.springernature.multipartform;
 
 import com.springernature.multipartform.exceptions.ParseError;
 import com.springernature.multipartform.exceptions.TokenNotFoundException;
+import com.springernature.multipartform.part.StreamingPart;
 import org.junit.Test;
 
 import java.util.Arrays;

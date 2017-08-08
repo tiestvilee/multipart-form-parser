@@ -1,4 +1,4 @@
-package com.springernature.multipartform;
+package com.springernature.multipartform.part;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -8,7 +8,7 @@ public class InMemoryPart extends PartWithInputStream {
     private final byte[] bytes; // not immutable
     public final String content;
 
-    InMemoryPart(Part original, byte[] bytes, Charset encoding) {
+    public InMemoryPart(Part original, byte[] bytes, Charset encoding) {
         super(original.fieldName, original.formField, original.contentType, original.fileName, original.headers);
 
         this.bytes = bytes;

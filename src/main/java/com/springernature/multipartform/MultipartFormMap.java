@@ -1,5 +1,6 @@
 package com.springernature.multipartform;
 
+import com.springernature.multipartform.part.*;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
@@ -13,6 +14,16 @@ import static com.springernature.multipartform.stream.StreamUtil.readAllBytesFro
 
 public class MultipartFormMap {
 
+    /**
+     * Returns a map of FieldName -> InMemoryParts, serialised from parts using the encoding
+     * and maximum Part size specified.
+     *
+     * @param parts       streaming parts
+     * @param encoding    encoding of the stream
+     * @param maxPartSize maximum size any one part can be
+     * @return Maps Fieldname to a List of all InMemoryParts with that Fieldname
+     * @throws IOException
+     */
     public static Map<String, List<InMemoryPart>> inMemoryFormMap(StreamingMultipartFormParts parts, Charset encoding, int maxPartSize) throws IOException {
         Map<String, List<InMemoryPart>> partMap = new HashMap<>();
 
@@ -27,6 +38,24 @@ public class MultipartFormMap {
         return partMap;
     }
 
+    /**
+     * Returns a Parts object containing a map of FieldName -> InMemoryParts, serialised from parts using the encoding
+     * and maximum Part size specified. If a Part is bigger than the writeToDiskThreshold, then it will be written to
+     * disk in temporaryFileDirectory (or the default temp dir if null).
+     *
+     * The Parts object must be closed when finished with so that the files that have been written to disk can be
+     * deleted.
+     *
+     * @param parts                     streaming parts
+     * @param encoding                  encoding of the stream
+     * @param writeToDiskThreshold      if a Part is bigger than this threshold it will be purged from memory
+     *                                  and written to disk
+     * @param temporaryFileDirectory    where to write the files for Parts that are too big. Uses the default
+     *                                  temporary directory if null.
+     * @return Parts object, which contains the Map of Fieldname to List of InMemoryParts. This object must
+     *                                  be closed so that it is cleaned up after.
+     * @throws IOException
+     */
     public static Parts diskBackedFormMap(StreamingMultipartFormParts parts, Charset encoding, int writeToDiskThreshold, File temporaryFileDirectory) throws IOException {
         Map<String, List<PartWithInputStream>> partMap = new HashMap<>();
         byte[] bytes = new byte[writeToDiskThreshold];
