@@ -311,12 +311,16 @@ public class StreamingMultipartFormHappyTests {
         compareStreamToFile(formFile, file.getFileName());
     }
 
-    public static void compareStreamToFile(InputStream formFile, String fileName) throws IOException {
-        int index = 0;
+    public static void compareStreamToFile(InputStream actualSream, String fileName) throws IOException {
         InputStream original = new FileInputStream("examples/" + fileName);
+        compareOneStreamToAnother(actualSream, original);
+    }
+
+    public static void compareOneStreamToAnother(InputStream actualStream, InputStream expectedStream) throws IOException {
+        int index = 0;
         while (true) {
-            int actual = formFile.read();
-            int expected = original.read();
+            int actual = actualStream.read();
+            int expected = expectedStream.read();
             assertThat("index " + index, actual, equalTo(expected));
             index++;
             if (actual == -1) {

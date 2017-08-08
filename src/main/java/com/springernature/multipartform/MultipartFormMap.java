@@ -2,10 +2,7 @@ package com.springernature.multipartform;
 
 import org.jetbrains.annotations.NotNull;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -75,7 +72,7 @@ public class MultipartFormMap {
     @NotNull private static File writeToDisk(String fileName, int writeToDiskThreshold, File temporaryFileDirectory, byte[] bytes, int length, InputStream partInputStream) throws IOException {
         File tempFile = File.createTempFile(fileName + "-", ".tmp", temporaryFileDirectory);
         tempFile.deleteOnExit();
-        FileOutputStream outputStream = new FileOutputStream(tempFile);
+        OutputStream outputStream = new FileOutputStream(tempFile);
         outputStream.write(bytes, 0, length);
         while (true) {
             int readLength = partInputStream.read(bytes, 0, writeToDiskThreshold);
