@@ -30,7 +30,7 @@ public class MultipartFormMap {
         return partMap;
     }
 
-    public static Map<String, List<PartWithInputStream>> diskBackedFormMap(StreamingMultipartFormParts parts, Charset encoding, int writeToDiskThreshold) throws IOException {
+    public static Parts diskBackedFormMap(StreamingMultipartFormParts parts, Charset encoding, int writeToDiskThreshold, File temporaryFileDirectory) throws IOException {
         Map<String, List<PartWithInputStream>> partMap = new HashMap<>();
         byte[] bytes = new byte[writeToDiskThreshold];
 
@@ -39,13 +39,13 @@ public class MultipartFormMap {
                 partMap.get(part.getFieldName()) :
                 new ArrayList<>();
 
-            keyParts.add(something(encoding, writeToDiskThreshold, part, part.inputStream, bytes));
+            keyParts.add(diskBackedPart(encoding, writeToDiskThreshold, temporaryFileDirectory, part, part.inputStream, bytes));
             partMap.put(part.getFieldName(), keyParts);
         }
-        return partMap;
+        return new Parts(partMap);
     }
 
-    private static PartWithInputStream something(Charset encoding, int writeToDiskThreshold, StreamingPart part, InputStream partInputStream, byte[] bytes) throws IOException {
+    private static PartWithInputStream diskBackedPart(Charset encoding, int writeToDiskThreshold, File temporaryFileDirectory, StreamingPart part, InputStream partInputStream, byte[] bytes) throws IOException {
         int length = 0;
 
         while (true) {
@@ -59,7 +59,7 @@ public class MultipartFormMap {
             if (length >= writeToDiskThreshold) {
                 return new DiskBackedPart(
                     part,
-                    writeToDisk(writeToDiskThreshold, bytes, length, partInputStream));
+                    writeToDisk(part.fileName, writeToDiskThreshold, temporaryFileDirectory, bytes, length, partInputStream));
             }
         }
     }
@@ -72,8 +72,8 @@ public class MultipartFormMap {
         return result;
     }
 
-    @NotNull private static File writeToDisk(int writeToDiskThreshold, byte[] bytes, int length, InputStream partInputStream) throws IOException {
-        File tempFile = File.createTempFile("download-", "tmp");
+    @NotNull private static File writeToDisk(String fileName, int writeToDiskThreshold, File temporaryFileDirectory, byte[] bytes, int length, InputStream partInputStream) throws IOException {
+        File tempFile = File.createTempFile(fileName + "-", ".tmp", temporaryFileDirectory);
         tempFile.deleteOnExit();
         FileOutputStream outputStream = new FileOutputStream(tempFile);
         outputStream.write(bytes, 0, length);

@@ -23,7 +23,11 @@ public class InMemoryPart extends PartWithInputStream {
         return content;
     }
 
-    public InputStream getInputStream() {
+    public InputStream getNewInputStream() {
         return new ByteArrayInputStream(bytes);
+    }
+
+    public void close() {
+        // do nothing
     }
 }
