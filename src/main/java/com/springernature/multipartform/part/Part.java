@@ -1,45 +1,24 @@
 package com.springernature.multipartform.part;
 
-import java.util.Collections;
+import java.io.Closeable;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Map;
 
-public abstract class Part {
-    public final String fieldName;
-    public final boolean formField;
-    public final String contentType;
-    public final String fileName;
-    public final Map<String, String> headers;
+public abstract class Part extends PartMetaData implements Closeable {
+    public final int length;
 
-    public Part(String fieldName, boolean formField, String contentType, String fileName, Map<String, String> headers) {
-        this.fieldName = fieldName;
-        this.formField = formField;
-        this.contentType = contentType;
-        this.fileName = fileName;
-        this.headers = Collections.unmodifiableMap(headers);
+    public Part(String fieldName, boolean formField, String contentType, String fileName, Map<String, String> headers, int length) {
+        super(fieldName, formField, contentType, fileName, headers);
+
+        this.length = length;
     }
 
-    public String getFieldName() {
-        return fieldName;
-    }
+    public abstract InputStream getNewInputStream() throws IOException;
 
-    public boolean isFormField() {
-        return formField;
-    }
+    public abstract boolean isInMemory();
 
-    public String getContentType() {
-        return contentType;
-    }
+    public abstract byte[] getBytes();
 
-    public String getFileName() {
-        return fileName;
-    }
-
-    public void sink() {
-        throw new UnsupportedOperationException("sink not implemented");
-    }
-
-    public Map<String, String> getHeaders() {
-        return headers;
-    }
-
+    public abstract String getString();
 }

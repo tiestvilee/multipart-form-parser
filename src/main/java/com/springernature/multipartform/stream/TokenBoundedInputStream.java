@@ -15,7 +15,7 @@ public class TokenBoundedInputStream {
     private long currentByteIndex;
     private long currentMark;
 
-    public TokenBoundedInputStream(InputStream inputStream, int bufSize, Charset encoding) throws IOException {
+    public TokenBoundedInputStream(InputStream inputStream, int bufSize, Charset encoding) {
         this(inputStream, bufSize, encoding, -1);
     }
 

@@ -1,14 +1,13 @@
 package com.springernature.multipartform.stream;
 
 import com.springernature.multipartform.exceptions.StreamTooLongException;
-import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 
 public class StreamUtil {
-    @NotNull public static String readStringFromInputStream(InputStream inputStream, Charset encoding, int maxPartContentSize) throws IOException {
+    public static String readStringFromInputStream(InputStream inputStream, Charset encoding, int maxPartContentSize) throws IOException {
         byte[] bytes = new byte[maxPartContentSize];
         int length = readAllBytesFromInputStream(inputStream, maxPartContentSize, bytes);
         return new String(bytes, 0, length, encoding);

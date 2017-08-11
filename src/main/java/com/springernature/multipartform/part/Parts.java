@@ -6,15 +6,15 @@ import java.util.List;
 import java.util.Map;
 
 public class Parts implements AutoCloseable {
-    public final Map<String, List<PartWithInputStream>> partMap;
+    public final Map<String, List<Part>> partMap;
 
-    public Parts(Map<String, List<PartWithInputStream>> partMap) {
+    public Parts(Map<String, List<Part>> partMap) {
         this.partMap = Collections.unmodifiableMap(partMap);
     }
 
     @Override public void close() throws IOException {
-        for (List<PartWithInputStream> parts : partMap.values()) {
-            for (PartWithInputStream part : parts) {
+        for (List<Part> parts : partMap.values()) {
+            for (Part part : parts) {
                 part.close();
             }
         }

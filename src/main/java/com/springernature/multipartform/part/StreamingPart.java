@@ -8,7 +8,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
-public class StreamingPart extends Part {
+public class StreamingPart extends PartMetaData {
     public final InputStream inputStream;
 
     public StreamingPart(String fieldName, boolean formField, String contentType, String fileName, InputStream inputStream, Map<String, String> headers) {

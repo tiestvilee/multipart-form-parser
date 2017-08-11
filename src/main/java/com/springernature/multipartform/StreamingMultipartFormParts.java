@@ -6,7 +6,6 @@ import com.springernature.multipartform.exceptions.TokenNotFoundException;
 import com.springernature.multipartform.part.StreamingPart;
 import com.springernature.multipartform.stream.TokenBoundedInputStream;
 import org.apache.commons.fileupload.util.ParameterParser;
-import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -64,19 +63,37 @@ public class StreamingMultipartFormParts implements Iterable<StreamingPart> {
     private byte[] boundary;
     private byte[] boundaryWithPrefix;
     private MultipartFormStreamState state;
+    // yes yes, I should use a stack or something for this
     private String mixedName = null;
     private byte[] oldBoundary = null;
     private byte[] oldBoundaryWithPrefix;
 
-    public static StreamingMultipartFormParts parse(byte[] boundary, InputStream inputStream, Charset encoding) throws IOException {
+    /**
+     * Uses the <code>boundary</code> to parse the <code>encoding</code> coded <code>inputStream</code>,
+     * returning an <code>Iterable</code> of <code>StreamingPart</code>s.
+     * <br/>
+     * You need to look after closing the inputStream yourself.
+     * <br/>
+     * The Iterable can throw a number of <code>ParseError</code> Exceptions that you should look
+     * out for. Sorry :( They will only happen if something goes wrong with the parsing, which
+     * it shouldn't ;)
+     *
+     * @param boundary    byte array defining the boundary between parts, usually found in the
+     *                    Content-Type header of an HTTP request
+     * @param inputStream of the body of an HTTP request - will be parsed as <code>multipart/form-data</code>
+     * @param encoding    of the body of the HTTP request
+     * @return an <code>Iterable&lt;StreamingPart></code> that you can for() through to get each part
+     * @throws IOException
+     */
+    public static Iterable<StreamingPart> parse(byte[] boundary, InputStream inputStream, Charset encoding) {
         return new StreamingMultipartFormParts(boundary, encoding, new TokenBoundedInputStream(inputStream, DEFAULT_BUFSIZE, encoding));
     }
 
-    public static StreamingMultipartFormParts parse(byte[] boundary, InputStream inputStream, Charset encoding, int maxStreamLength) throws IOException {
+    public static Iterable<StreamingPart> parse(byte[] boundary, InputStream inputStream, Charset encoding, int maxStreamLength) {
         return new StreamingMultipartFormParts(boundary, encoding, new TokenBoundedInputStream(inputStream, DEFAULT_BUFSIZE, encoding, maxStreamLength));
     }
 
-    private StreamingMultipartFormParts(byte[] boundary, Charset encoding, TokenBoundedInputStream tokenBoundedInputStream) throws IOException {
+    private StreamingMultipartFormParts(byte[] boundary, Charset encoding, TokenBoundedInputStream tokenBoundedInputStream) {
         this.boundary = boundary;
         this.encoding = encoding;
         this.inputStream = tokenBoundedInputStream;
@@ -87,7 +104,7 @@ public class StreamingMultipartFormParts implements Iterable<StreamingPart> {
         iterator = new StreamingMulipartFormPartIterator();
     }
 
-    @NotNull @Override public Iterator<StreamingPart> iterator() {
+    @Override public Iterator<StreamingPart> iterator() {
         return iterator;
     }
 
@@ -244,6 +261,13 @@ public class StreamingMultipartFormParts implements Iterable<StreamingPart> {
             return !isEndOfStream();
         }
 
+        /**
+         * Returns the next element in the iteration.
+         *
+         * @return the next element in the iteration
+         * @throws NoSuchElementException if the iteration has no more elements
+         * @throws ParseError             if there was a problem parsing the stream
+         */
         @Override public StreamingPart next() {
             if (nextIsKnown) {
                 if (isEndOfStream()) {
@@ -314,8 +338,9 @@ public class StreamingMultipartFormParts implements Iterable<StreamingPart> {
             closed = true;
             if (!endOfStream) {
                 try {
+                    //noinspection StatementWithEmptyBody
                     while (readNextByte() > -1) {
-                        // do nothing
+                        // drop unwanted bytes :(
                     }
                 } catch (IOException e) {
                     endOfStream = true;
