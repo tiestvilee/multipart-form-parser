@@ -1,8 +1,8 @@
-package com.springernature.multipartform;
+package org.tiestvilee.multipartform;
 
-import com.springernature.multipartform.exceptions.AlreadyClosedException;
-import com.springernature.multipartform.part.StreamingPart;
 import org.junit.Test;
+import org.tiestvilee.multipartform.exceptions.AlreadyClosedException;
+import org.tiestvilee.multipartform.part.StreamingPart;
 
 import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;

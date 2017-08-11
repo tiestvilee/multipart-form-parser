@@ -1,4 +1,4 @@
-package com.springernature.multipartform.part;
+package org.tiestvilee.multipartform.part;
 
 import java.io.IOException;
 import java.util.Collections;

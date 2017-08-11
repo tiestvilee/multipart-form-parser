@@ -1,4 +1,4 @@
-package com.springernature.multipartform.part;
+package org.tiestvilee.multipartform.part;
 
 import java.io.Closeable;
 import java.io.IOException;

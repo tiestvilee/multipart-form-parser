@@ -1,11 +1,11 @@
-package com.springernature.multipartform;
+package org.tiestvilee.multipartform;
 
-import com.springernature.multipartform.exceptions.AlreadyClosedException;
-import com.springernature.multipartform.exceptions.ParseError;
-import com.springernature.multipartform.exceptions.TokenNotFoundException;
-import com.springernature.multipartform.part.StreamingPart;
-import com.springernature.multipartform.stream.TokenBoundedInputStream;
 import org.apache.commons.fileupload.util.ParameterParser;
+import org.tiestvilee.multipartform.exceptions.AlreadyClosedException;
+import org.tiestvilee.multipartform.exceptions.ParseError;
+import org.tiestvilee.multipartform.exceptions.TokenNotFoundException;
+import org.tiestvilee.multipartform.part.StreamingPart;
+import org.tiestvilee.multipartform.stream.TokenBoundedInputStream;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -33,9 +33,7 @@ public class StreamingMultipartFormParts implements Iterable<StreamingPart> {
     public static final byte LF = 0x0A;
 
     /**
-     *
      * The dash (-) ASCII character value.
-     *
      */
     public static final byte DASH = 0x2D;
 

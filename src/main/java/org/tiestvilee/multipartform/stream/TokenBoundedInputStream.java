@@ -1,7 +1,7 @@
-package com.springernature.multipartform.stream;
+package org.tiestvilee.multipartform.stream;
 
-import com.springernature.multipartform.exceptions.StreamTooLongException;
-import com.springernature.multipartform.exceptions.TokenNotFoundException;
+import org.tiestvilee.multipartform.exceptions.StreamTooLongException;
+import org.tiestvilee.multipartform.exceptions.TokenNotFoundException;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;

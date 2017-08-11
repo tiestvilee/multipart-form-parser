@@ -1,7 +1,7 @@
-package com.springernature.multipartform;
+package org.tiestvilee.multipartform;
 
-import com.springernature.multipartform.exceptions.ParseError;
-import com.springernature.multipartform.part.*;
+import org.tiestvilee.multipartform.exceptions.ParseError;
+import org.tiestvilee.multipartform.part.*;
 
 import java.io.*;
 import java.nio.charset.Charset;
