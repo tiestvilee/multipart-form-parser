@@ -13,12 +13,12 @@ import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.Map;
 
-import static com.googlecode.totallylazy.Pair.pair;
-import static com.googlecode.totallylazy.Sequences.sequence;
+import static java.util.Arrays.asList;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.*;
+import static org.tiestvilee.multipartform.ValidMultipartFormBuilder.pair;
 
 public class StreamingMultipartFormHappyTests {
 
@@ -170,12 +170,12 @@ public class StreamingMultipartFormHappyTests {
         Iterator<StreamingPart> form = getMultipartFormParts(boundary,
             new ValidMultipartFormBuilder(boundary)
                 .part("This is the content of the file\n",
-                    pair("Content-Disposition", sequence(pair("form-data", null), pair("name", "fileFieldName"), pair("filename", "filename.txt"))),
-                    pair("Content-Type", sequence(pair("plain/text", null))),
-                    pair("Some-header", sequence(pair("some value", null))))
+                    pair("Content-Disposition", asList(pair("form-data", null), pair("name", "fileFieldName"), pair("filename", "filename.txt"))),
+                    pair("Content-Type", asList(pair("plain/text", null))),
+                    pair("Some-header", asList(pair("some value", null))))
                 .part("This is the content of the field\n",
-                    pair("Content-Disposition", sequence(pair("form-data", null), pair("name", "fieldFieldName"))),
-                    pair("Another-header", sequence(pair("some-key", "some-value")))
+                    pair("Content-Disposition", asList(pair("form-data", null), pair("name", "fieldFieldName"))),
+                    pair("Another-header", asList(pair("some-key", "some-value")))
                 )
                 .build());
 
@@ -205,6 +205,7 @@ public class StreamingMultipartFormHappyTests {
 
         StreamingPart file = form.next();
 
+        //noinspection StatementWithEmptyBody
         while (file.inputStream.read() > 0) {
             // keep reading.
         }
