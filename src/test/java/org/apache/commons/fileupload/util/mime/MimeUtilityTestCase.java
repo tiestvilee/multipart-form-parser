@@ -37,12 +37,12 @@ public final class MimeUtilityTestCase {
 
     @Test
     public void decodeUtf8QuotedPrintableEncoded() throws Exception {
-        assertEncoded(" hÈ! ‡ËÙu !!!", "=?UTF-8?Q?_h=C3=A9!_=C3=A0=C3=A8=C3=B4u_!!!?=");
+        assertEncoded(" h√©! √†√®√¥u !!!", "=?UTF-8?Q?_h=C3=A9!_=C3=A0=C3=A8=C3=B4u_!!!?=");
     }
 
     @Test
     public void decodeUtf8Base64Encoded() throws Exception {
-        assertEncoded(" hÈ! ‡ËÙu !!!", "=?UTF-8?B?IGjDqSEgw6DDqMO0dSAhISE=?=");
+        assertEncoded(" h√©! √†√®√¥u !!!", "=?UTF-8?B?IGjDqSEgw6DDqMO0dSAhISE=?=");
     }
 
     @Test
