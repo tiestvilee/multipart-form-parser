@@ -268,7 +268,7 @@ public class StreamingMultipartFormHappyTests {
     @Test
     public void canLoadComplexRealLifeSafariExample() throws Exception {
         Iterator<StreamingPart> parts = StreamingMultipartFormParts.parse(
-            "------WebKitFormBoundary6LmirFeqsyCQRtbj".getBytes(StandardCharsets.UTF_8),
+            "----WebKitFormBoundary6LmirFeqsyCQRtbj".getBytes(StandardCharsets.UTF_8),
             new FileInputStream("examples/safari-example.multipart"),
             StandardCharsets.UTF_8
         ).iterator();
@@ -285,7 +285,7 @@ public class StreamingMultipartFormHappyTests {
     @Test
     public void canLoadComplexRealLifeChromeExample() throws Exception {
         Iterator<StreamingPart> parts = StreamingMultipartFormParts.parse(
-            "------WebKitFormBoundaryft3FGhOMTYoOkCCc".getBytes(StandardCharsets.UTF_8),
+            "----WebKitFormBoundaryft3FGhOMTYoOkCCc".getBytes(StandardCharsets.UTF_8),
             new FileInputStream("examples/chrome-example.multipart"),
             StandardCharsets.UTF_8
         ).iterator();

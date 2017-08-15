@@ -24,7 +24,7 @@ public class ValidMultipartFormBuilder {
 
     public ValidMultipartFormBuilder(byte[] boundary, Charset encoding) {
         this.encoding = encoding;
-        this.boundary.push(boundary);
+        this.boundary.push(StreamingMultipartFormParts.prependBoundaryWithStreamTerminator(boundary));
     }
 
     public byte[] build() {

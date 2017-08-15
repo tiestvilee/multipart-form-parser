@@ -14,6 +14,8 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.fail;
+import static org.tiestvilee.multipartform.StreamingMultipartFormHappyTests.CR_LF;
+import static org.tiestvilee.multipartform.StreamingMultipartFormHappyTests.getMultipartFormParts;
 import static org.tiestvilee.multipartform.StreamingMultipartFormParts.HEADER_SIZE_MAX;
 import static org.tiestvilee.multipartform.ValidMultipartFormBuilder.pair;
 
@@ -21,12 +23,12 @@ public class StreamingMultipartFormSadTests {
 
     @Test
     public void failsWhenNoBoundaryInStream() throws Exception {
-        String boundary = "-----1234";
-        Iterator<StreamingPart> form = StreamingMultipartFormHappyTests.getMultipartFormParts(boundary, "No boundary anywhere".getBytes());
+        String boundary = "---1234";
+        Iterator<StreamingPart> form = getMultipartFormParts(boundary, "No boundary anywhere".getBytes());
 
         assertParseErrorWrapsTokenNotFound(form, "Boundary not found <<-----1234>>");
 
-        form = StreamingMultipartFormHappyTests.getMultipartFormParts(boundary, "No boundary anywhere".getBytes());
+        form = getMultipartFormParts(boundary, "No boundary anywhere".getBytes());
 
         try {
             form.next();
@@ -41,7 +43,7 @@ public class StreamingMultipartFormSadTests {
     @Test
     public void failsWhenGettingNextPastEndOfParts() throws Exception {
         String boundary = "-----1234";
-        Iterator<StreamingPart> form = StreamingMultipartFormHappyTests.getMultipartFormParts(boundary, new ValidMultipartFormBuilder(boundary)
+        Iterator<StreamingPart> form = getMultipartFormParts(boundary, new ValidMultipartFormBuilder(boundary)
             .file("aFile", "file.name", "application/octet-stream", "File contents here")
             .file("anotherFile", "your.name", "application/octet-stream", "Different file contents here").build());
 
@@ -58,7 +60,7 @@ public class StreamingMultipartFormSadTests {
     @Test
     public void failsWhenGettingNextPastEndOfPartsAfterHasNext() throws Exception {
         String boundary = "-----1234";
-        Iterator<StreamingPart> form = StreamingMultipartFormHappyTests.getMultipartFormParts(boundary, new ValidMultipartFormBuilder(boundary)
+        Iterator<StreamingPart> form = getMultipartFormParts(boundary, new ValidMultipartFormBuilder(boundary)
             .file("aFile", "file.name", "application/octet-stream", "File contents here")
             .file("anotherFile", "your.name", "application/octet-stream", "Different file contents here").build());
 
@@ -76,9 +78,9 @@ public class StreamingMultipartFormSadTests {
     @Test
     public void partHasNoHeaders() throws Exception {
         String boundary = "-----2345";
-        Iterator<StreamingPart> form = StreamingMultipartFormHappyTests.getMultipartFormParts(boundary, new ValidMultipartFormBuilder(boundary)
+        Iterator<StreamingPart> form = getMultipartFormParts(boundary, new ValidMultipartFormBuilder(boundary)
             .field("multi", "value0")
-            .rawPart("" + StreamingMultipartFormHappyTests.CR_LF + "value with no headers")
+            .rawPart("" + CR_LF + "value with no headers")
             .field("multi", "value2")
             .build());
 
@@ -95,7 +97,7 @@ public class StreamingMultipartFormSadTests {
     @Test
     public void overwritesPartHeaderIfHeaderIsRepeated() throws Exception {
         String boundary = "-----2345";
-        Iterator<StreamingPart> form = StreamingMultipartFormHappyTests.getMultipartFormParts(boundary, new ValidMultipartFormBuilder(boundary)
+        Iterator<StreamingPart> form = getMultipartFormParts(boundary, new ValidMultipartFormBuilder(boundary)
             .part("contents of StreamingPart",
                 pair("Content-Disposition", asList(pair("form-data", null), pair("bit", "first"), pair("name", "first-name"))),
                 pair("Content-Disposition", asList(pair("form-data", null), pair("bot", "second"), pair("name", "second-name"))))
@@ -109,44 +111,44 @@ public class StreamingMultipartFormSadTests {
 
     @Test
     public void failsIfFoundBoundaryButNoFieldSeparator() throws Exception {
-        String boundary = "-----2345";
+        String boundary = "---2345";
 
-        Iterator<StreamingPart> form = StreamingMultipartFormHappyTests.getMultipartFormParts(boundary, ("-----2345" + // no CR_LF
-            "Content-Disposition: form-data; name=\"name\"" + StreamingMultipartFormHappyTests.CR_LF +
-            "" + StreamingMultipartFormHappyTests.CR_LF +
-            "value" + StreamingMultipartFormHappyTests.CR_LF +
-            "-----2345--" + StreamingMultipartFormHappyTests.CR_LF).getBytes());
+        Iterator<StreamingPart> form = getMultipartFormParts(boundary, ("-----2345" + // no CR_LF
+            "Content-Disposition: form-data; name=\"name\"" + CR_LF +
+            "" + CR_LF +
+            "value" + CR_LF +
+            "-----2345--" + CR_LF).getBytes());
 
         assertParseErrorWrapsTokenNotFound(form, "Boundary must be followed by field separator, but didn't find it");
     }
 
     @Test
     public void failsIfHeaderMissingFieldSeparator() throws Exception {
-        String boundary = "-----2345";
+        String boundary = "---2345";
 
-        assertParseError(StreamingMultipartFormHappyTests.getMultipartFormParts(boundary, ("-----2345" + StreamingMultipartFormHappyTests.CR_LF +
+        assertParseError(getMultipartFormParts(boundary, ("-----2345" + CR_LF +
             "Content-Disposition: form-data; name=\"name\"" + // no CR_LF
-            "" + StreamingMultipartFormHappyTests.CR_LF +
-            "value" + StreamingMultipartFormHappyTests.CR_LF +
-            "-----2345--" + StreamingMultipartFormHappyTests.CR_LF).getBytes()), "Header didn't include a colon <<value>>");
+            "" + CR_LF +
+            "value" + CR_LF +
+            "-----2345--" + CR_LF).getBytes()), "Header didn't include a colon <<value>>");
 
 
-        assertParseError(StreamingMultipartFormHappyTests.getMultipartFormParts(boundary, ("-----2345" + StreamingMultipartFormHappyTests.CR_LF +
-            "Content-Disposition: form-data; name=\"name\"" + StreamingMultipartFormHappyTests.CR_LF +
+        assertParseError(getMultipartFormParts(boundary, ("-----2345" + CR_LF +
+            "Content-Disposition: form-data; name=\"name\"" + CR_LF +
             // no CR_LF
-            "value" + StreamingMultipartFormHappyTests.CR_LF +
-            "-----2345--" + StreamingMultipartFormHappyTests.CR_LF).getBytes()), "Header didn't include a colon <<value>>");
+            "value" + CR_LF +
+            "-----2345--" + CR_LF).getBytes()), "Header didn't include a colon <<value>>");
     }
 
     @Test
     public void failsIfContentsMissingFieldSeparator() throws Exception {
-        String boundary = "-----2345";
+        String boundary = "---2345";
 
-        Iterator<StreamingPart> form = StreamingMultipartFormHappyTests.getMultipartFormParts(boundary, ("-----2345" + StreamingMultipartFormHappyTests.CR_LF +
-            "Content-Disposition: form-data; name=\"name\"" + StreamingMultipartFormHappyTests.CR_LF +
-            "" + StreamingMultipartFormHappyTests.CR_LF +
+        Iterator<StreamingPart> form = getMultipartFormParts(boundary, ("-----2345" + CR_LF +
+            "Content-Disposition: form-data; name=\"name\"" + CR_LF +
+            "" + CR_LF +
             "value" + // no CR_LF
-            "-----2345--" + StreamingMultipartFormHappyTests.CR_LF).getBytes());
+            "-----2345--" + CR_LF).getBytes());
 
         form.next();
         // StreamingPart's content stream hasn't been closed
@@ -155,13 +157,13 @@ public class StreamingMultipartFormSadTests {
 
     @Test
     public void failsIfContentsMissingFieldSeparatorAndHasReadToEndOfContent() throws Exception {
-        String boundary = "-----2345";
+        String boundary = "---2345";
 
-        Iterator<StreamingPart> form = StreamingMultipartFormHappyTests.getMultipartFormParts(boundary, ("-----2345" + StreamingMultipartFormHappyTests.CR_LF +
-            "Content-Disposition: form-data; name=\"name\"" + StreamingMultipartFormHappyTests.CR_LF +
-            "" + StreamingMultipartFormHappyTests.CR_LF +
+        Iterator<StreamingPart> form = getMultipartFormParts(boundary, ("-----2345" + CR_LF +
+            "Content-Disposition: form-data; name=\"name\"" + CR_LF +
+            "" + CR_LF +
             "value" + // no CR_LF
-            "-----2345--" + StreamingMultipartFormHappyTests.CR_LF).getBytes());
+            "-----2345--" + CR_LF).getBytes());
 
         StreamingPart StreamingPart = form.next();
         StreamingPart.getContentsAsString();
@@ -170,12 +172,12 @@ public class StreamingMultipartFormSadTests {
 
     @Test
     public void failsIfClosingBoundaryIsMissingFieldSeparator() throws Exception {
-        String boundary = "-----2345";
+        String boundary = "---2345";
 
-        Iterator<StreamingPart> form = StreamingMultipartFormHappyTests.getMultipartFormParts(boundary, ("-----2345" + StreamingMultipartFormHappyTests.CR_LF +
-            "Content-Disposition: form-data; name=\"name\"" + StreamingMultipartFormHappyTests.CR_LF +
-            "" + StreamingMultipartFormHappyTests.CR_LF +
-            "value" + StreamingMultipartFormHappyTests.CR_LF +
+        Iterator<StreamingPart> form = getMultipartFormParts(boundary, ("-----2345" + CR_LF +
+            "Content-Disposition: form-data; name=\"name\"" + CR_LF +
+            "" + CR_LF +
+            "value" + CR_LF +
             "-----2345--").getBytes()); // no CR_LF
 
         form.next();
@@ -184,13 +186,13 @@ public class StreamingMultipartFormSadTests {
 
     @Test
     public void failsIfClosingBoundaryIsMissing() throws Exception {
-        String boundary = "-----2345";
+        String boundary = "---2345";
 
-        Iterator<StreamingPart> form = StreamingMultipartFormHappyTests.getMultipartFormParts(boundary, ("-----2345" + StreamingMultipartFormHappyTests.CR_LF +
-            "Content-Disposition: form-data; name=\"name\"" + StreamingMultipartFormHappyTests.CR_LF +
-            "" + StreamingMultipartFormHappyTests.CR_LF +
-            "value" + StreamingMultipartFormHappyTests.CR_LF +
-            "-----2345" + StreamingMultipartFormHappyTests.CR_LF).getBytes());
+        Iterator<StreamingPart> form = getMultipartFormParts(boundary, ("-----2345" + CR_LF +
+            "Content-Disposition: form-data; name=\"name\"" + CR_LF +
+            "" + CR_LF +
+            "value" + CR_LF +
+            "-----2345" + CR_LF).getBytes());
 
         form.next();
         assertParseErrorWrapsTokenNotFound(form, "Didn't find Token <<\r\n>>. Last 2 bytes read were <<>>");
@@ -198,11 +200,11 @@ public class StreamingMultipartFormSadTests {
 
     @Test
     public void failsIfHeadingTooLong() throws Exception {
-        String boundary = "-----2345";
+        String boundary = "---2345";
 
         char[] chars = new char[HEADER_SIZE_MAX];
         Arrays.fill(chars, 'x');
-        Iterator<StreamingPart> form = StreamingMultipartFormHappyTests.getMultipartFormParts(boundary, new ValidMultipartFormBuilder(boundary)
+        Iterator<StreamingPart> form = getMultipartFormParts(boundary, new ValidMultipartFormBuilder(boundary)
             .file("aFile", new String(chars), "application/octet-stream", "File contents here").build());
 
         assertParseErrorWrapsTokenNotFound(form, "Didn't find end of Token <<\r\n>> within 10240 bytes");
@@ -210,11 +212,11 @@ public class StreamingMultipartFormSadTests {
 
     @Test
     public void failsIfTooManyHeadings() throws Exception {
-        String boundary = "-----2345";
+        String boundary = "---2345";
 
         char[] chars = new char[1024];
         Arrays.fill(chars, 'x');
-        Iterator<StreamingPart> form = StreamingMultipartFormHappyTests.getMultipartFormParts(boundary, new ValidMultipartFormBuilder(boundary)
+        Iterator<StreamingPart> form = getMultipartFormParts(boundary, new ValidMultipartFormBuilder(boundary)
             .part("some contents",
                 pair("Content-Disposition", asList(pair("form-data", null), pair("name", "fieldName"), pair("filename", "filename"))),
                 pair("Content-Type", asList(pair("text/plain", null))),

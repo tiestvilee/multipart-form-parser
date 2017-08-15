@@ -128,6 +128,7 @@ public class TokenBoundedInputStream {
 
     private void resetToMarkInStream() throws IOException {
         currentByteIndex = currentMark;
+//        System.out.println(">> RESET <<");
         inputStream.reset();
     }
 
@@ -141,7 +142,9 @@ public class TokenBoundedInputStream {
         if (maxStreamLength > -1 && currentByteIndex >= maxStreamLength) {
             throw new StreamTooLongException("Form contents was longer than " + maxStreamLength + " bytes");
         }
-        return inputStream.read();
+        int read = inputStream.read();
+//        System.out.write(read);
+        return read;
     }
 
     public long currentByteIndex() {

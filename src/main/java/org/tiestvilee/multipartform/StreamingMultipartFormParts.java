@@ -92,7 +92,7 @@ public class StreamingMultipartFormParts implements Iterable<StreamingPart> {
     }
 
     private StreamingMultipartFormParts(byte[] boundary, Charset encoding, TokenBoundedInputStream tokenBoundedInputStream) {
-        this.boundary = boundary;
+        this.boundary = prependBoundaryWithStreamTerminator(boundary);
         this.encoding = encoding;
         this.inputStream = tokenBoundedInputStream;
 
@@ -111,6 +111,13 @@ public class StreamingMultipartFormParts implements Iterable<StreamingPart> {
         System.arraycopy(boundary, 0, b, 2, boundary.length);
         System.arraycopy(FIELD_SEPARATOR, 0, b, 0, FIELD_SEPARATOR.length);
         return b;
+    }
+
+    public static byte[] prependBoundaryWithStreamTerminator(byte[] boundary) {
+        byte[] actualBoundary = new byte[boundary.length + 2];
+        System.arraycopy(STREAM_TERMINATOR, 0, actualBoundary, 0, 2);
+        System.arraycopy(boundary, 0, actualBoundary, 2, boundary.length);
+        return actualBoundary;
     }
 
     private void findBoundary() throws IOException {

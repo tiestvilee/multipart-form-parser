@@ -109,7 +109,7 @@ public class MultipartFormMapTest {
     @Test
     public void throwsExceptionIfFormIsTooBig() throws Exception {
         Iterable<StreamingPart> form = StreamingMultipartFormParts.parse(
-            "------WebKitFormBoundary6LmirFeqsyCQRtbj".getBytes(UTF_8),
+            "----WebKitFormBoundary6LmirFeqsyCQRtbj".getBytes(UTF_8),
             new FileInputStream("examples/safari-example.multipart"),
             UTF_8,
             1024
@@ -157,7 +157,7 @@ public class MultipartFormMapTest {
     @Test
     public void throwsExceptionIfMultipartMalformed() throws Exception {
         Iterable<StreamingPart> form = StreamingMultipartFormParts.parse(
-            "-----2345".getBytes(UTF_8),
+            "---2345".getBytes(UTF_8),
             new ByteArrayInputStream(("-----2345" + StreamingMultipartFormHappyTests.CR_LF +
                 "Content-Disposition: form-data; name=\"name\"" + StreamingMultipartFormHappyTests.CR_LF +
                 "" + StreamingMultipartFormHappyTests.CR_LF +
@@ -174,7 +174,7 @@ public class MultipartFormMapTest {
 
     private Iterable<StreamingPart> safariExample() throws IOException {
         return StreamingMultipartFormParts.parse(
-            "------WebKitFormBoundary6LmirFeqsyCQRtbj".getBytes(UTF_8),
+            "----WebKitFormBoundary6LmirFeqsyCQRtbj".getBytes(UTF_8),
             new FileInputStream("examples/safari-example.multipart"),
             UTF_8
         );
