@@ -3,13 +3,12 @@ package org.tiestvilee.multipartform.stream;
 import org.tiestvilee.multipartform.exceptions.StreamTooLongException;
 import org.tiestvilee.multipartform.exceptions.TokenNotFoundException;
 
-import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 
 public class TokenBoundedInputStream {
-    private final BufferedInputStream inputStream;
+    private final InputStream inputStream;
     private final Charset encoding;
     private final int maxStreamLength;
     private long currentByteIndex;
@@ -22,7 +21,7 @@ public class TokenBoundedInputStream {
     public TokenBoundedInputStream(InputStream inputStream, int bufSize, Charset encoding, int maxStreamLength) {
         this.encoding = encoding;
         this.maxStreamLength = maxStreamLength;
-        this.inputStream = new BufferedInputStream(inputStream, bufSize);
+        this.inputStream = new CircularBufferedInputStream(inputStream, bufSize);
         currentByteIndex = 0;
     }
 

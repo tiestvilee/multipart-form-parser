@@ -1,5 +1,6 @@
 package org.tiestvilee.multipartform;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.tiestvilee.multipartform.part.StreamingPart;
 
@@ -22,6 +23,7 @@ public class SpeedTest {
     }
 
     @Test
+    @Ignore
     public void uploadMultipleFilesAndFields() throws Exception {
         PrintWriter results = new PrintWriter(new File("./out/results.csv"));
         File bigFile = File.createTempFile("uploadMultipleFilesAndFields-", ".bin", new File("./out"));
