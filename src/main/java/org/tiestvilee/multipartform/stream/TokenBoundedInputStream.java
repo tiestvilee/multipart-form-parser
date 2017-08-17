@@ -22,6 +22,7 @@ public class TokenBoundedInputStream {
         this.encoding = encoding;
         this.maxStreamLength = maxStreamLength;
         this.inputStream = new CircularBufferedInputStream(inputStream, bufSize);
+//        this.inputStream = new BufferedInputStream(inputStream, bufSize);
         currentByteIndex = 0;
     }
 
@@ -43,7 +44,7 @@ public class TokenBoundedInputStream {
         while ((b = readFromStream()) > -1 && bufferIndex < maxStringSizeInBytes) {
             byte originalB = (byte) b;
             markStream(endOfToken);
-            if (matchToken(endOfToken, b) == endOfToken.length) {
+            if (matchToken(endOfToken, b)) {
                 return new String(buffer, 0, bufferIndex, encoding);
             }
             buffer[bufferIndex++] = originalB;
@@ -73,12 +74,12 @@ public class TokenBoundedInputStream {
         return new String(buffer, index, length, encoding);
     }
 
-    private int matchToken(byte[] token, int initialCharacter) throws IOException {
+    private boolean matchToken(byte[] token, int initialCharacter) throws IOException {
         int eotIndex = 0;
         while (initialCharacter > -1 && ((byte) initialCharacter == token[eotIndex]) && (++eotIndex) < token.length) {
             initialCharacter = readFromStream();
         }
-        return eotIndex;
+        return eotIndex == token.length;
     }
 
     /**
@@ -92,7 +93,7 @@ public class TokenBoundedInputStream {
     public boolean matchInStream(byte[] token) throws IOException {
         markStream(token);
 
-        if (matchToken(token, readFromStream()) == token.length) {
+        if (matchToken(token, readFromStream())) {
             return true;
         }
 

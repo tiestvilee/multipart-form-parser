@@ -40,9 +40,7 @@ public class SpeedTest {
                 int fileCount = fileCounts[fileCountsIndex];
                 int fileSize = fileSizes[fileSizeIndex];
 
-                if (fileCount == 100_000 || fileSize == 100_000 || fileCount == 30_000 || fileSize == 30_000) {
-                    timeFile(bigFile, boundary, fullBoundary, r, fileCount, fileSize, results);
-                }
+                timeFile(bigFile, boundary, fullBoundary, r, fileCount, fileSize, results);
             }
         }
         results.close();
