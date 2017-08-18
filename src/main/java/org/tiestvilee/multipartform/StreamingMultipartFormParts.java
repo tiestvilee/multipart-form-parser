@@ -84,11 +84,11 @@ public class StreamingMultipartFormParts implements Iterable<StreamingPart> {
      * @throws IOException
      */
     public static Iterable<StreamingPart> parse(byte[] boundary, InputStream inputStream, Charset encoding) {
-        return new StreamingMultipartFormParts(boundary, encoding, new TokenBoundedInputStream(inputStream, DEFAULT_BUFSIZE, encoding));
+        return new StreamingMultipartFormParts(boundary, encoding, new TokenBoundedInputStream(inputStream, DEFAULT_BUFSIZE));
     }
 
     public static Iterable<StreamingPart> parse(byte[] boundary, InputStream inputStream, Charset encoding, int maxStreamLength) {
-        return new StreamingMultipartFormParts(boundary, encoding, new TokenBoundedInputStream(inputStream, DEFAULT_BUFSIZE, encoding, maxStreamLength));
+        return new StreamingMultipartFormParts(boundary, encoding, new TokenBoundedInputStream(inputStream, DEFAULT_BUFSIZE, maxStreamLength));
     }
 
     private StreamingMultipartFormParts(byte[] boundary, Charset encoding, TokenBoundedInputStream tokenBoundedInputStream) {
@@ -100,6 +100,13 @@ public class StreamingMultipartFormParts implements Iterable<StreamingPart> {
 
         state = MultipartFormStreamState.findBoundary;
         iterator = new StreamingMulipartFormPartIterator();
+    }
+
+    public static String readStringFromStreamUntilMatched(TokenBoundedInputStream tokenBoundedInputStream, byte[] endOfToken, int maxStringSizeInBytes, Charset encoding) throws IOException {
+        // very inefficient search!
+        byte[] buffer = new byte[maxStringSizeInBytes];
+        int bytes = tokenBoundedInputStream.getBytesUntil(endOfToken, buffer, encoding);
+        return new String(buffer, 0, bytes, encoding);
     }
 
     @Override public Iterator<StreamingPart> iterator() {
@@ -223,7 +230,7 @@ public class StreamingMultipartFormParts implements Iterable<StreamingPart> {
         String previousHeaderName = null;
         long maxByteIndexForHeader = inputStream.currentByteIndex() + HEADER_SIZE_MAX;
         while (inputStream.currentByteIndex() < maxByteIndexForHeader) {
-            String header = inputStream.readStringFromStreamUntilMatched(FIELD_SEPARATOR, (int) (maxByteIndexForHeader - inputStream.currentByteIndex()));
+            String header = readStringFromStreamUntilMatched(inputStream, FIELD_SEPARATOR, (int) (maxByteIndexForHeader - inputStream.currentByteIndex()), encoding);
             if (header.equals("")) {
                 state = MultipartFormStreamState.contents;
                 return result;

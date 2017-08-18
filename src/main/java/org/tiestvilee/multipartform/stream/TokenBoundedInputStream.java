@@ -9,17 +9,15 @@ import java.nio.charset.Charset;
 
 public class TokenBoundedInputStream {
     private final InputStream inputStream;
-    private final Charset encoding;
     private final int maxStreamLength;
     private long currentByteIndex;
     private long currentMark;
 
-    public TokenBoundedInputStream(InputStream inputStream, int bufSize, Charset encoding) {
-        this(inputStream, bufSize, encoding, -1);
+    public TokenBoundedInputStream(InputStream inputStream, int bufSize) {
+        this(inputStream, bufSize, -1);
     }
 
-    public TokenBoundedInputStream(InputStream inputStream, int bufSize, Charset encoding, int maxStreamLength) {
-        this.encoding = encoding;
+    public TokenBoundedInputStream(InputStream inputStream, int bufSize, int maxStreamLength) {
         this.maxStreamLength = maxStreamLength;
         this.inputStream = new CircularBufferedInputStream(inputStream, bufSize);
 //        this.inputStream = new BufferedInputStream(inputStream, bufSize);
@@ -27,25 +25,26 @@ public class TokenBoundedInputStream {
     }
 
     /**
-     * Consumes all bytes up to and including the matched endOfToken bytes. Returns a
-     * String made up of those bytes, excluding the matched endOfToken bytes.
+     * Consumes all bytes up to and including the matched endOfToken bytes.
+     * Fills the buffer with all bytes excluding the endOfToken bytes.
+     * Returns the number of bytes inserted into the buffer.
      *
-     * @param endOfToken           bytes that indicate the end of this token
-     * @param maxStringSizeInBytes maximum size of String to return
-     * @return a String made of all the bytes consumed, excluding the endOfToken bytes
+     * @param endOfToken bytes that indicate the end of this token
+     * @param buffer     fills this buffer with bytes _excluding_ the endOfToken
+     * @param encoding   Charset for formatting error messages
+     * @return number of bytes inserted into buffer
      * @throws IOException
      */
-    public String readStringFromStreamUntilMatched(byte[] endOfToken, int maxStringSizeInBytes) throws IOException {
-        // very inefficient search!
-        byte[] buffer = new byte[maxStringSizeInBytes];
+    public int getBytesUntil(byte[] endOfToken, byte[] buffer, Charset encoding) throws IOException {
         int bufferIndex = 0;
+        int maxStringSizeInBytes = buffer.length;
 
         int b;
         while ((b = readFromStream()) > -1 && bufferIndex < maxStringSizeInBytes) {
             byte originalB = (byte) b;
             markStream(endOfToken);
             if (matchToken(endOfToken, b)) {
-                return new String(buffer, 0, bufferIndex, encoding);
+                return bufferIndex;
             }
             buffer[bufferIndex++] = originalB;
             resetToMarkInStream();
@@ -59,10 +58,10 @@ public class TokenBoundedInputStream {
         throw new TokenNotFoundException(
             "Didn't find Token <<" + new String(endOfToken, encoding) + ">>. " +
                 "Last " + endOfToken.length + " bytes read were " +
-                "<<" + getBytesRead(endOfToken, buffer, bufferIndex) + ">>");
+                "<<" + getBytesRead(endOfToken, buffer, bufferIndex, encoding) + ">>");
     }
 
-    private String getBytesRead(byte[] endOfToken, byte[] buffer, int bufferIndex) {
+    private String getBytesRead(byte[] endOfToken, byte[] buffer, int bufferIndex, Charset encoding) {
         int index, length;
         if (bufferIndex - endOfToken.length > 0) {
             index = bufferIndex - endOfToken.length;
