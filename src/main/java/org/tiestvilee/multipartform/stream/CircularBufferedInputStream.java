@@ -11,7 +11,7 @@ public class CircularBufferedInputStream extends InputStream {
     private final byte[] buffer;
     private final InputStream inputStream;
 
-    private long cursor;
+    protected long cursor;
     private long rightBounds;
     private long leftBounds;
     private long readLimit;

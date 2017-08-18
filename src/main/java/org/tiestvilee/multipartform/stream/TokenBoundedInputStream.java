@@ -7,21 +7,16 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 
-public class TokenBoundedInputStream {
-    private final InputStream inputStream;
+public class TokenBoundedInputStream extends CircularBufferedInputStream {
     private final int maxStreamLength;
-    private long currentByteIndex;
-    private long currentMark;
 
     public TokenBoundedInputStream(InputStream inputStream, int bufSize) {
         this(inputStream, bufSize, -1);
     }
 
     public TokenBoundedInputStream(InputStream inputStream, int bufSize, int maxStreamLength) {
+        super(inputStream, bufSize);
         this.maxStreamLength = maxStreamLength;
-        this.inputStream = new CircularBufferedInputStream(inputStream, bufSize);
-//        this.inputStream = new BufferedInputStream(inputStream, bufSize);
-        currentByteIndex = 0;
     }
 
     /**
@@ -42,12 +37,12 @@ public class TokenBoundedInputStream {
         int b;
         while ((b = readFromStream()) > -1 && bufferIndex < maxStringSizeInBytes) {
             byte originalB = (byte) b;
-            markStream(endOfToken);
+            mark(endOfToken.length);
             if (matchToken(endOfToken, b)) {
                 return bufferIndex;
             }
             buffer[bufferIndex++] = originalB;
-            resetToMarkInStream();
+            reset();
         }
 
         if (bufferIndex >= maxStringSizeInBytes) {
@@ -90,13 +85,13 @@ public class TokenBoundedInputStream {
      * false if it isn't found (and the stream is unchanged)
      */
     public boolean matchInStream(byte[] token) throws IOException {
-        markStream(token);
+        mark(token.length);
 
         if (matchToken(token, readFromStream())) {
             return true;
         }
 
-        resetToMarkInStream();
+        reset();
         return false;
     }
 
@@ -109,7 +104,7 @@ public class TokenBoundedInputStream {
      * when it is matched.
      */
     public int readByteFromStreamUntilMatched(byte[] endOfToken) throws IOException {
-        markStream(endOfToken);
+        mark(endOfToken.length);
         int b = readFromStream();
         int eotIndex = 0;
         while (eotIndex < endOfToken.length && ((byte) b == endOfToken[eotIndex])) {
@@ -117,36 +112,24 @@ public class TokenBoundedInputStream {
             eotIndex++;
         }
         if (eotIndex == endOfToken.length) {
-            resetToMarkInStream();
+            reset();
             return -1;
         }
-        resetToMarkInStream();
+        reset();
         return readFromStream();
     }
 
 
-    private void resetToMarkInStream() throws IOException {
-        currentByteIndex = currentMark;
-//        System.out.println(">> RESET <<");
-        inputStream.reset();
-    }
-
-    private void markStream(byte[] endOfToken) {
-        currentMark = currentByteIndex;
-        inputStream.mark(endOfToken.length);
-    }
-
     private int readFromStream() throws IOException {
-        currentByteIndex++;
-        if (maxStreamLength > -1 && currentByteIndex >= maxStreamLength) {
+        if (maxStreamLength > -1 && cursor >= maxStreamLength) {
             throw new StreamTooLongException("Form contents was longer than " + maxStreamLength + " bytes");
         }
-        int read = inputStream.read();
+        int read = read();
 //        System.out.write(read);
         return read;
     }
 
     public long currentByteIndex() {
-        return currentByteIndex;
+        return cursor;
     }
 }
