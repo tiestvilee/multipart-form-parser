@@ -102,13 +102,6 @@ public class StreamingMultipartFormParts implements Iterable<StreamingPart> {
         iterator = new StreamingMulipartFormPartIterator();
     }
 
-    public static String readStringFromStreamUntilMatched(TokenBoundedInputStream tokenBoundedInputStream, byte[] endOfToken, int maxStringSizeInBytes, Charset encoding) throws IOException {
-        // very inefficient search!
-        byte[] buffer = new byte[maxStringSizeInBytes];
-        int bytes = tokenBoundedInputStream.getBytesUntil(endOfToken, buffer, encoding);
-        return new String(buffer, 0, bytes, encoding);
-    }
-
     @Override public Iterator<StreamingPart> iterator() {
         return iterator;
     }
@@ -248,6 +241,13 @@ public class StreamingMultipartFormParts implements Iterable<StreamingPart> {
             }
         }
         throw new TokenNotFoundException("Didn't find end of Header section within " + HEADER_SIZE_MAX + " bytes");
+    }
+
+    public static String readStringFromStreamUntilMatched(TokenBoundedInputStream tokenBoundedInputStream, byte[] endOfToken, int maxStringSizeInBytes, Charset encoding) throws IOException {
+        // very inefficient search!
+        byte[] buffer = new byte[maxStringSizeInBytes];
+        int bytes = tokenBoundedInputStream.getBytesUntil(endOfToken, buffer, encoding);
+        return new String(buffer, 0, bytes, encoding);
     }
 
     public class StreamingMulipartFormPartIterator implements Iterator<StreamingPart> {

@@ -32,10 +32,21 @@ public class TokenBoundedInputStream extends CircularBufferedInputStream {
      */
     public int getBytesUntil(byte[] endOfToken, byte[] buffer, Charset encoding) throws IOException {
         int bufferIndex = 0;
-        int maxStringSizeInBytes = buffer.length;
+        int bufferLength = buffer.length;
 
         int b;
-        while ((b = readFromStream()) > -1 && bufferIndex < maxStringSizeInBytes) {
+        while (true) {
+            b = readFromStream();
+            if (b <= -1) {
+                throw new TokenNotFoundException(
+                    "Reached end of stream before finding Token <<" + new String(endOfToken, encoding) + ">>. " +
+                        "Last " + endOfToken.length + " bytes read were " +
+                        "<<" + getBytesRead(endOfToken, buffer, bufferIndex, encoding) + ">>");
+            }
+            if (bufferIndex >= bufferLength) {
+                throw new TokenNotFoundException("Didn't find end of Token <<" + new String(endOfToken, encoding) + ">> " +
+                    "within " + bufferLength + " bytes");
+            }
             byte originalB = (byte) b;
             mark(endOfToken.length);
             if (matchToken(endOfToken, b)) {
@@ -44,16 +55,6 @@ public class TokenBoundedInputStream extends CircularBufferedInputStream {
             buffer[bufferIndex++] = originalB;
             reset();
         }
-
-        if (bufferIndex >= maxStringSizeInBytes) {
-            throw new TokenNotFoundException("Didn't find end of Token <<" + new String(endOfToken, encoding) + ">> " +
-                "within " + maxStringSizeInBytes + " bytes");
-        }
-
-        throw new TokenNotFoundException(
-            "Didn't find Token <<" + new String(endOfToken, encoding) + ">>. " +
-                "Last " + endOfToken.length + " bytes read were " +
-                "<<" + getBytesRead(endOfToken, buffer, bufferIndex, encoding) + ">>");
     }
 
     private String getBytesRead(byte[] endOfToken, byte[] buffer, int bufferIndex, Charset encoding) {

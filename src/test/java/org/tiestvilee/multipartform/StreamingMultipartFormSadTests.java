@@ -195,7 +195,7 @@ public class StreamingMultipartFormSadTests {
             "-----2345" + CR_LF).getBytes());
 
         form.next();
-        assertParseErrorWrapsTokenNotFound(form, "Didn't find Token <<\r\n>>. Last 2 bytes read were <<>>");
+        assertParseErrorWrapsTokenNotFound(form, "Reached end of stream before finding Token <<\r\n>>. Last 2 bytes read were <<>>");
     }
 
     @Test
