@@ -128,11 +128,12 @@ public class StreamingMultipartFormParts implements Iterable<StreamingPart> {
             state = MultipartFormStreamState.findBoundary;
         }
 
-        assertStateIs(MultipartFormStreamState.findBoundary);
-
-        if (!inputStream.matchInStream(boundary)) {
-            throw new TokenNotFoundException("Boundary not found <<" + new String(boundary, encoding) + ">>");
+        if (state == MultipartFormStreamState.findBoundary) {
+            if (!inputStream.matchInStream(boundary)) {
+                throw new TokenNotFoundException("Boundary not found <<" + new String(boundary, encoding) + ">>");
+            }
         }
+
         state = MultipartFormStreamState.boundaryFound;
         if (inputStream.matchInStream(STREAM_TERMINATOR)) {
             if (inputStream.matchInStream(FIELD_SEPARATOR)) {
@@ -338,10 +339,16 @@ public class StreamingMultipartFormParts implements Iterable<StreamingPart> {
         }
 
         private int readNextByte() throws IOException {
-            int result = inputStream.readByteFromStreamUntilMatched(boundaryWithPrefix);
+            int result = inputStream.readByteFromStreamUnlessTokenMatched(boundaryWithPrefix);
             if (result == -1) {
                 state = MultipartFormStreamState.findPrefix;
                 endOfStream = true;
+                return -1;
+            }
+            if (result == -2) {
+                state = MultipartFormStreamState.boundaryFound;
+                endOfStream = true;
+                return -1; // inputStream.read(byte b[], int off, int len) checks for exactly -1
             }
             return result;
         }
@@ -351,7 +358,7 @@ public class StreamingMultipartFormParts implements Iterable<StreamingPart> {
             if (!endOfStream) {
                 try {
                     //noinspection StatementWithEmptyBody
-                    while (readNextByte() > -1) {
+                    while (readNextByte() >= 0) {
                         // drop unwanted bytes :(
                     }
                 } catch (IOException e) {

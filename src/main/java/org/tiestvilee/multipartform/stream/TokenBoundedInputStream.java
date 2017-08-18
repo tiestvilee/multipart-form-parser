@@ -37,7 +37,7 @@ public class TokenBoundedInputStream extends CircularBufferedInputStream {
         int b;
         while (true) {
             b = readFromStream();
-            if (b <= -1) {
+            if (b < 0) {
                 throw new TokenNotFoundException(
                     "Reached end of stream before finding Token <<" + new String(endOfToken, encoding) + ">>. " +
                         "Last " + endOfToken.length + " bytes read were " +
@@ -47,13 +47,15 @@ public class TokenBoundedInputStream extends CircularBufferedInputStream {
                 throw new TokenNotFoundException("Didn't find end of Token <<" + new String(endOfToken, encoding) + ">> " +
                     "within " + bufferLength + " bytes");
             }
-            byte originalB = (byte) b;
-            mark(endOfToken.length);
-            if (matchToken(endOfToken, b)) {
-                return bufferIndex;
+            byte originalB = (byte) (b & 0x0FF);
+            if (originalB == endOfToken[0]) {
+                mark(endOfToken.length);
+                if (matchToken(endOfToken, b)) {
+                    return bufferIndex;
+                }
+                reset();
             }
             buffer[bufferIndex++] = originalB;
-            reset();
         }
     }
 
@@ -98,26 +100,25 @@ public class TokenBoundedInputStream extends CircularBufferedInputStream {
 
     /**
      * returns a single byte from the Stream until the token is found. When the token is found,
-     * -1 will be returned, and the token will still be available on the stream. Inconsistent.
+     * -2 will be returned. The token will be consumed.
      *
-     * @param endOfToken bytes that indicate the end of this token
-     * @return the next byte in the stream, or -1 if the token is found. The token is NOT consumed
-     * when it is matched.
+     * @param token bytes that indicate the end of this token
+     * @return the next byte in the stream, -1 if the underlying stream has finished,
+     *         or -2 if the token is found. The token is consumed when it is matched.
      */
-    public int readByteFromStreamUntilMatched(byte[] endOfToken) throws IOException {
-        mark(endOfToken.length);
+    public int readByteFromStreamUnlessTokenMatched(byte[] token) throws IOException {
+//        System.out.println("new String(endOfToken) = '" + new String(token) + "'");
         int b = readFromStream();
-        int eotIndex = 0;
-        while (eotIndex < endOfToken.length && ((byte) b == endOfToken[eotIndex])) {
-            b = readFromStream();
-            eotIndex++;
-        }
-        if (eotIndex == endOfToken.length) {
+        if (((byte) b) == token[0]) {
+            mark(token.length);
+
+            if (matchToken(token, b)) {
+                return -2;
+            }
+
             reset();
-            return -1;
         }
-        reset();
-        return readFromStream();
+        return b;
     }
 
 
@@ -126,7 +127,7 @@ public class TokenBoundedInputStream extends CircularBufferedInputStream {
             throw new StreamTooLongException("Form contents was longer than " + maxStreamLength + " bytes");
         }
         int read = read();
-//        System.out.write(read);
+//        System.out.println((char) read + " (" + read + ")" );
         return read;
     }
 

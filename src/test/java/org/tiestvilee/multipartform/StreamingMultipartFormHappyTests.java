@@ -325,7 +325,7 @@ public class StreamingMultipartFormHappyTests {
             int expected = expectedStream.read();
             assertThat("index " + index, actual, equalTo(expected));
             index++;
-            if (actual == -1) {
+            if (actual < 0) {
                 break;
             }
         }
