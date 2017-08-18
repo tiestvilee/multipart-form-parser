@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.nio.InvalidMarkException;
 
 public class CircularBufferedInputStream extends InputStream {
+    private static final boolean DEBUG = false;
     private final int bufferSize;
     private final long bufferIndexMask;
     private final byte[] buffer;
@@ -18,7 +19,7 @@ public class CircularBufferedInputStream extends InputStream {
     private boolean EOS;
 
     public CircularBufferedInputStream(InputStream inputStream, int maxExpectedBufSize) {
-        this.bufferSize = Integer.highestOneBit(maxExpectedBufSize);
+        this.bufferSize = Integer.highestOneBit(maxExpectedBufSize) * 2;
         this.bufferIndexMask = bufferSize - 1;
 //        System.out.println("CREATING " + maxExpectedBufSize + " -> " + bufferSize + " -> " + (bufferSize - 1));
         this.buffer = new byte[bufferSize];
@@ -32,12 +33,19 @@ public class CircularBufferedInputStream extends InputStream {
     }
 
     @Override public int read() throws IOException {
-//        System.out.println(">>> READ");
-//        dumpState();
+        dumpState2(">>> READ");
+
         if (EOS) {
             return -1;
         }
+        int result = read1();
 
+        dumpState2("<<< READ");
+
+        return result;
+    }
+
+    private int read1() throws IOException {
         while (cursor == rightBounds) {
             if (!readMore()) {
                 return -1;
@@ -46,13 +54,40 @@ public class CircularBufferedInputStream extends InputStream {
         return buffer[(int) (cursor++ & bufferIndexMask)] & 0x0FF;
     }
 
+    @Override public int read(byte[] b, int off, int len) throws IOException {
+        if (b == null) {
+            throw new NullPointerException();
+        } else if (off < 0 || len < 0 || len > b.length - off) {
+            throw new IndexOutOfBoundsException();
+        } else if (len == 0) {
+            return 0;
+        }
+
+        if (EOS) {
+            return -1;
+        }
+
+        for (int i = 0; i < len; i++) {
+            int result = read1();
+            if (result == -1) {
+                return i;
+            }
+            b[i + off] = (byte) result;
+        }
+
+        return len;
+    }
+
     private boolean readMore() throws IOException {
         long rightIndex = rightBounds & bufferIndexMask;
         long leftIndex = leftBounds & bufferIndexMask;
+
+        int readThisManyBytes = leftIndex > rightIndex ? (int) (leftIndex - rightIndex) : (int) (buffer.length - rightIndex);
+
         int readBytes = inputStream.read(
             buffer,
             (int) rightIndex,
-            leftIndex > rightIndex ? (int) (leftIndex - rightIndex) : (int) (buffer.length - rightIndex)
+            readThisManyBytes
         );
 
         if (readBytes < 0) {
@@ -63,7 +98,8 @@ public class CircularBufferedInputStream extends InputStream {
 
         // move mark if past readLimit
         if (cursor - leftBounds > readLimit) {
-            cursor = leftBounds - readLimit;
+            leftBounds = cursor;
+            readLimit = 0;
             markInvalid = true;
         }
 
@@ -79,25 +115,47 @@ public class CircularBufferedInputStream extends InputStream {
     }
 
     @Override public synchronized void reset() throws IOException {
-//        System.out.println(">>> RESET");
-//        dumpState();
+        dumpState2(">>> RESET");
+
         if (markInvalid) {
             // The mark has been moved because you have read past your readlimit
             throw new InvalidMarkException();
         }
         cursor = leftBounds;
+        readLimit = 0;
+        markInvalid = false;
+
+        dumpState2("<<< RESET");
     }
 
     @Override public synchronized void mark(int readlimit) {
-//        System.out.println(">>> MARK");
-//        dumpState();
+        dumpState2(">>> MARK");
+
+        if (readlimit > bufferSize) {
+            throw new ArrayIndexOutOfBoundsException(String.format("Readlimit (%d) cannot be bigger than buffer size (%d)", readlimit, bufferSize));
+        }
         leftBounds = cursor;
         markInvalid = false;
         this.readLimit = readlimit;
+
+//        if(DEBUG) {
+        dumpState2("<<< MARK");
     }
 
-    private void dumpState() {
-        System.out.println("l=" + leftBounds + " c=" + cursor + " r=" + rightBounds + " '" +
-            (char) buffer[(int) (cursor & bufferIndexMask)] + "'");
+    private void dumpState2(String description) {
+        if (DEBUG) {
+            System.out.println(description);
+            System.out.println(
+                "l=" + leftBounds + "(" + (leftBounds & bufferIndexMask) + ") " +
+                    "c=" + cursor + "(" + (cursor & bufferIndexMask) + ") " +
+                    "r=" + rightBounds + "(" + (rightBounds & bufferIndexMask) + ") '" +
+                    "rl=" + readLimit + " " +
+                    (char) buffer[(int) (cursor & bufferIndexMask)] + "'");
+            for (byte b : buffer) {
+                System.out.print((char) b);
+            }
+            System.out.println();
+        }
     }
+
 }
