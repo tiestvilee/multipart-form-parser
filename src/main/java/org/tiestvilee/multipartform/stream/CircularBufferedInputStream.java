@@ -21,7 +21,6 @@ public class CircularBufferedInputStream extends InputStream {
     public CircularBufferedInputStream(InputStream inputStream, int maxExpectedBufSize) {
         this.bufferSize = Integer.highestOneBit(maxExpectedBufSize) * 2;
         this.bufferIndexMask = bufferSize - 1;
-//        System.out.println("CREATING " + maxExpectedBufSize + " -> " + bufferSize + " -> " + (bufferSize - 1));
         this.buffer = new byte[bufferSize];
         this.inputStream = inputStream;
         this.cursor = 0;
@@ -33,14 +32,14 @@ public class CircularBufferedInputStream extends InputStream {
     }
 
     @Override public int read() throws IOException {
-        dumpState2(">>> READ");
+        dumpState(">>> READ");
 
         if (EOS) {
             return -1;
         }
         int result = read1();
 
-        dumpState2("<<< READ");
+        dumpState("<<< READ");
 
         return result;
     }
@@ -115,7 +114,7 @@ public class CircularBufferedInputStream extends InputStream {
     }
 
     @Override public synchronized void reset() throws IOException {
-        dumpState2(">>> RESET");
+        dumpState(">>> RESET");
 
         if (markInvalid) {
             // The mark has been moved because you have read past your readlimit
@@ -125,11 +124,11 @@ public class CircularBufferedInputStream extends InputStream {
         readLimit = 0;
         markInvalid = false;
 
-        dumpState2("<<< RESET");
+        dumpState("<<< RESET");
     }
 
     @Override public synchronized void mark(int readlimit) {
-        dumpState2(">>> MARK");
+        dumpState(">>> MARK");
 
         if (readlimit > bufferSize) {
             throw new ArrayIndexOutOfBoundsException(String.format("Readlimit (%d) cannot be bigger than buffer size (%d)", readlimit, bufferSize));
@@ -138,11 +137,10 @@ public class CircularBufferedInputStream extends InputStream {
         markInvalid = false;
         this.readLimit = readlimit;
 
-//        if(DEBUG) {
-        dumpState2("<<< MARK");
+        dumpState("<<< MARK");
     }
 
-    private void dumpState2(String description) {
+    private void dumpState(String description) {
         if (DEBUG) {
             System.out.println(description);
             System.out.println(

@@ -107,7 +107,6 @@ public class TokenBoundedInputStream extends CircularBufferedInputStream {
      *         or -2 if the token is found. The token is consumed when it is matched.
      */
     public int readByteFromStreamUnlessTokenMatched(byte[] token) throws IOException {
-//        System.out.println("new String(endOfToken) = '" + new String(token) + "'");
         int b = readFromStream();
         if (((byte) b) == token[0]) {
             mark(token.length);
@@ -126,9 +125,7 @@ public class TokenBoundedInputStream extends CircularBufferedInputStream {
         if (maxStreamLength > -1 && cursor >= maxStreamLength) {
             throw new StreamTooLongException("Form contents was longer than " + maxStreamLength + " bytes");
         }
-        int read = read();
-//        System.out.println((char) read + " (" + read + ")" );
-        return read;
+        return read();
     }
 
     public long currentByteIndex() {
