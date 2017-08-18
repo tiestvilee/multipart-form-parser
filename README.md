@@ -66,6 +66,9 @@ public class Example {
 }
 ```
 
+I've done limited testing parsing forms with files, big and small and multiple, POSTed by Safari, 
+Chrome, Firefox on Mac. Should probably test others at some point 😁. 
+
 Enjoy!
 
 Development
@@ -79,11 +82,15 @@ Should be completely self contained. Tell me if it isn't
 
 ## Deployment
 
-Wish I new!
+Just add the jar to your project. I guess I'll get a Maven thing set up at some point.
 
 ## Built With
 
-Gradlew!
+`./gradlew clean test`
+
+This will create a jar
+
+`build/libs/multipart-form-parser-1.0.jar`
 
 ## Contributing
 
